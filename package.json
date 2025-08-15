@@ -1,0 +1,17 @@
+{
+  "name": "my-auth-project",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm:dev:client\" \"npm:dev:server\"",
+    "dev:client": "npm --workspace=client run dev",
+    "dev:server": "npm --workspace=server run dev"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
