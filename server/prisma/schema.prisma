@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String     @id @default(cuid())
+  email         String?    @unique
+  name          String?
+  avatarUrl     String?
+  isEmailVerified Boolean  @default(false)
+  accounts      Account[] 
+  refreshTokens RefreshToken[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([email])
+}
+
+model Account {
+  id            String  @id @default(cuid())
+  provider      String
+  providerAccountId String
+  userId        String
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken   String?
+  refreshToken  String?
+  expiresAt     Int?
+  tokenType     String?
+  scope         String?
+  createdAt     DateTime @default(now())
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model RefreshToken {
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String   // hash the token (bcrypt or sha256)
+  revoked    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+model EmailOTP {
+  id        String   @id @default(cuid())
+  email     String
+  otpHash   String   // store hashed OTP
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
+}
