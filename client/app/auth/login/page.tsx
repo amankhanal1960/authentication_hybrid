@@ -174,7 +174,9 @@ export default function LoginForm() {
                     <Checkbox
                       id="remember"
                       checked={rememberMe}
-                      onCheckedChange={(checked) => setRememberMe(checked)}
+                      onCheckedChange={(checked: boolean) =>
+                        setRememberMe(checked)
+                      }
                       className="data-[state=checked]:bg-gray-600 data-[state=checked]:border-gray-600"
                     />
                     <Label
