@@ -20,7 +20,7 @@ export default function SignupForm() {
   };
 
   return (
-    <div>
+    <div className="min-h-screen">
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
