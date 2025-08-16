@@ -29,7 +29,7 @@ export default function SignupForm() {
       >
         <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/50 to-black/60" />
       </div>
-      <div className="relative z-10 min-h-screen flex items-center justify-center p-4 pt-20 sm:pt-24">
+      <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-6xl">
           {/* Mobile-first responsive grid */}
           <div className="backdrop-blur-xs shadow-2xl overflow-hidden">
@@ -49,9 +49,9 @@ export default function SignupForm() {
               </div>
 
               {/* Form Section */}
-              <div className="p-6 sm:p-8 lg:p-10 xl:p-12 flex flex-col justify-center bg-white/95 lg:gap-6 sm:gap-4 gap-2 ">
+              <div className="p-6 sm:p-8 lg:p-10 xl:p-12 flex flex-col justify-center bg-white/95 lg:gap-6 sm:gap-4 gap-2">
                 {/* Mobile header - only visible on small screens */}
-                <div className="md:hidden text-center mb-8">
+                <div className="md:hidden text-center mb-4">
                   <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
                     Create Account
                   </h1>
@@ -95,7 +95,7 @@ export default function SignupForm() {
                 </div>
 
                 {/* Divider */}
-                <div className="relative my-6">
+                <div className="relative my-3">
                   <div className="absolute inset-0 flex items-center">
                     <Separator className="w-full" />
                   </div>
