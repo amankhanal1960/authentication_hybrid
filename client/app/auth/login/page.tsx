@@ -1,11 +1,20 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Chrome, Facebook, Eye, EyeOff, Loader2 } from "lucide-react";
+import {
+  Chrome,
+  Facebook,
+  Eye,
+  EyeOff,
+  Loader2,
+  Apple,
+  Github,
+} from "lucide-react";
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
@@ -13,6 +22,12 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const router = useRouter();
+
+  const handleSignUpRedirect = () => {
+    router.push("/auth/register");
+  };
 
   return (
     <div>
@@ -55,24 +70,39 @@ export default function LoginForm() {
                 </div>
 
                 {/* Social Login Buttons */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-center gap-3 max-w-3xl w-full mx-auto">
-                  <Button
-                    variant="outline"
-                    className="flex items-center cursor-pointer justify-center w-full sm:w-auto flex-1 h-12 bg-white text-primary  border border-gray-200 hover:bg-gray-50 lg:hover:ring-0 lg:hover:border-gray-500 text-base font-medium"
-                    disabled={isLoading}
-                  >
-                    <Chrome className="mr-3 h-5 w-5" />
-                    Google
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    className="flex items-center cursor-pointer justify-center w-full sm:w-auto flex-1 h-12 bg-white text-primary  border border-gray-200 hover:bg-gray-50 lg:hover:ring-0 lg:hover:border-gray-500 text-base font-medium"
-                    disabled={isLoading}
-                  >
-                    <Facebook className="mr-3 h-5 w-5" />
-                    Facebook
-                  </Button>
+                <div className="flex justify-between flex-col gap-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex items-center cursor-pointer justify-center w-full sm:w-auto flex-1 h-12 bg-white text-primary  border border-gray-200 hover:bg-gray-50 lg:hover:ring-0 lg:hover:border-gray-500 text-base font-medium"
+                    >
+                      <Chrome className="mr-3 h-5 w-5" />
+                      Google
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex items-center cursor-pointer justify-center w-full sm:w-auto flex-1 h-12 bg-white text-primary  border border-gray-200 hover:bg-gray-50 lg:hover:ring-0 lg:hover:border-gray-500 text-base font-medium"
+                    >
+                      <Github className="mr-3 h-5 w-5" />
+                      Github
+                    </Button>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex items-center cursor-pointer justify-center w-full sm:w-auto flex-1 h-12 bg-white text-primary  border border-gray-200 hover:bg-gray-50 lg:hover:ring-0 lg:hover:border-gray-500 text-base font-medium"
+                    >
+                      <Apple className="mr-3 h-5 w-5" />
+                      Apple
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex items-center cursor-pointer justify-center w-full sm:w-auto flex-1 h-12 bg-white text-primary  border border-gray-200 hover:bg-gray-50 lg:hover:ring-0 lg:hover:border-gray-500 text-base font-medium"
+                    >
+                      <Facebook className="mr-3 h-5 w-5" />
+                      Facebook
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Divider */}
@@ -187,6 +217,7 @@ export default function LoginForm() {
                   </span>
                   <Button
                     variant="link"
+                    onClick={handleSignUpRedirect}
                     className="p-0 h-auto font-semibold text-primary hover:text-primary/90 text-base cursor-pointer"
                     disabled={isLoading}
                   >
