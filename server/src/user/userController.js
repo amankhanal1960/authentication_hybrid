@@ -1,4 +1,5 @@
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 import db from "../lib/db.js";
 
 export async function registerUser(req, res) {
@@ -41,6 +42,82 @@ export async function registerUser(req, res) {
     });
   } catch (err) {
     console.error("Registration error:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function generateOTP(userId, email) {
+  const buffer = crypto.randomBytes(4);
+  const hex = buffer.toString("hex");
+  const num = parseInt(hex, 16);
+  const otp = (num % 1000000).toString().padStart(6, "0");
+
+  const otpHash = await bcrypt.hash(otp, 10);
+  const expiresAt = new Date(Date.now() + 15 * 60000); // 15 minutes
+
+  await db.emailOTP.create({
+    data: {
+      email,
+      otpHash,
+      expiresAt,
+      userId,
+    },
+  });
+  return otp;
+}
+
+export async function verifyEmailOTP(req, res) {
+  try {
+    const { otp, email, userId } = req.body;
+    if (!otp || !email || !userId) {
+      return res
+        .status(400)
+        .json({ error: "OTP, email, and userId are required!" });
+    }
+
+    const normalizedEmail = email.toLowerCase();
+
+    const OTPRecord = await db.emailOTP.findFirst({
+      where: {
+        email: normalizedEmail,
+        used: false,
+        expiresAt: {
+          gt: new Date(),
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      },
+    });
+
+    if (!OTPRecord) {
+      return res.status(400).json({ error: "Invalid or expired OTP!" });
+    }
+
+    const isValid = await bcrypt.compare(otp, OTPRecord.otpHash);
+    if (!isValid) {
+      //Track failed attempts
+      await db.emailOTP.update({
+        where: { id: OTPRecord.id },
+        data: { attempts: { increment: 1 } },
+      });
+      return res.status(400).json({ error: "Invalid OTP!" });
+    }
+
+    await db.emailOTP.update({
+      where: { id: OTPRecord.id },
+      data: { used: true },
+    }),
+      db.user.update({
+        where: { email: normalizedEmail },
+        data: { isEmailVerified: true },
+      });
+
+    await sendVerificationSuccessEmail(normalizedEmail);
+
+    return res.status(200).json({ message: "Email verified successfully!" });
+  } catch (err) {
+    console.error("Email verification error:", err);
     return res.status(500).json({ error: "Internal server error" });
   }
 }
