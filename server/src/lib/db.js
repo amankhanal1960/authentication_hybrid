@@ -7,7 +7,7 @@ db.$connect()
     console.log("Database connected successfully");
   })
   .catch((error) => {
-    console.error("Databse connection error:", error);
+    console.error("Database connection error:", error);
   });
 
-module.exports = db;
+export default db;

@@ -1,11 +1,10 @@
-import express from "express"; // if using ES modules
-// or: const express = require('express'); if using CommonJS
+import express from "express";
+import userRoutes from "./user/userRoutes.js";
 
 const app = express();
+app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.send("Server is running 🚀");
-});
+app.use("/api/user", userRoutes);
 
 app.listen(4000, () => {
   console.log("Server listening on http://localhost:4000");

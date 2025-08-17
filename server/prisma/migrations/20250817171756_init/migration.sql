@@ -3,10 +3,12 @@ CREATE TABLE "public"."User" (
     "id" TEXT NOT NULL,
     "email" TEXT,
     "name" TEXT,
+    "password" TEXT,
     "avatarUrl" TEXT,
     "isEmailVerified" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "lastLogin" TIMESTAMP(3),
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -22,6 +24,7 @@ CREATE TABLE "public"."Account" (
     "expiresAt" INTEGER,
     "tokenType" TEXT,
     "scope" TEXT,
+    "idToken" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Account_pkey" PRIMARY KEY ("id")
@@ -35,6 +38,8 @@ CREATE TABLE "public"."RefreshToken" (
     "revoked" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "expiresAt" TIMESTAMP(3) NOT NULL,
+    "userAgent" TEXT,
+    "ipAddress" TEXT,
 
     CONSTRAINT "RefreshToken_pkey" PRIMARY KEY ("id")
 );
@@ -47,6 +52,8 @@ CREATE TABLE "public"."EmailOTP" (
     "attempts" INTEGER NOT NULL DEFAULT 0,
     "expiresAt" TIMESTAMP(3) NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "used" BOOLEAN NOT NULL DEFAULT false,
+    "userId" TEXT,
 
     CONSTRAINT "EmailOTP_pkey" PRIMARY KEY ("id")
 );
@@ -64,13 +71,22 @@ CREATE INDEX "Account_userId_idx" ON "public"."Account"("userId");
 CREATE UNIQUE INDEX "Account_provider_providerAccountId_key" ON "public"."Account"("provider", "providerAccountId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "RefreshToken_tokenHash_key" ON "public"."RefreshToken"("tokenHash");
+
+-- CreateIndex
 CREATE INDEX "RefreshToken_userId_idx" ON "public"."RefreshToken"("userId");
+
+-- CreateIndex
+CREATE INDEX "RefreshToken_tokenHash_idx" ON "public"."RefreshToken"("tokenHash");
 
 -- CreateIndex
 CREATE INDEX "EmailOTP_email_idx" ON "public"."EmailOTP"("email");
 
 -- CreateIndex
 CREATE INDEX "EmailOTP_expiresAt_idx" ON "public"."EmailOTP"("expiresAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "EmailOTP_email_otpHash_key" ON "public"."EmailOTP"("email", "otpHash");
 
 -- AddForeignKey
 ALTER TABLE "public"."Account" ADD CONSTRAINT "Account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
