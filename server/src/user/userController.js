@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import db from "../lib/db.js";
+import jwt from "jsonwebtoken";
 import {
   sendOTPEmail,
   sendVerificationSuccessEmail,
@@ -219,6 +220,55 @@ export async function resendVerifyEmailOTP(req, res) {
     return res.status(200).json({ message: "New OTP sent successfully!" });
   } catch (err) {
     console.error("Resend OTP error:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function loginUser(req, res) {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res
+        .status(400)
+        .json({ error: "Email and password are required!" });
+    }
+
+    const normalizedEmail = email.toLowerCase();
+
+    const user = await db.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (!user || !user.password) {
+      return res.status(404).json({ error: "Invalid email or password." });
+    }
+
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) {
+      return res.status(401).json({ error: "Invalid credentials." });
+    }
+
+    if (!user.isEmailVerified) {
+      return res.status(403).json({
+        error: "Email not verified. Please verify your email first.",
+      });
+    }
+
+    if (!process.env.JWT_SECRET) {
+      console.error("Missing JWT_SECRET");
+      return res.status(500).json({ error: "Server configuration error." });
+    }
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    return res.status(200).json({ message: "Login successful", token });
+  } catch (error) {
+    console.error("Login error:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 }
