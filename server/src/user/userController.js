@@ -4,15 +4,18 @@ import db from "../lib/db.js";
 import {
   sendOTPEmail,
   sendVerificationSuccessEmail,
-} from "../lib/emailService.js";
+} from "../services/emailService.js";
 
 const OTP_EXPIRY_MINUTES = Number(process.env.OTP_EXPIRY_MINUTES) || 15;
 const BCRYPT_SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS) || 10;
 const MAX_OTP_ATTEMPTS = 5;
 
 function makeOtp() {
-  const n = crypto.randomBytes(0, 1_000_000);
-  return String(n).padStart(6, "0");
+  const buffer = crypto.randomBytes(4); // <--- first (and only) arg is number of bytes
+  const hex = buffer.toString("hex");
+  const num = parseInt(hex, 16);
+  const otp = (num % 1_000_000).toString().padStart(6, "0"); // 6 digits
+  return otp;
 }
 
 export async function generateOTP(userId, email) {
