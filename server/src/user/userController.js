@@ -1,6 +1,34 @@
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import db from "../lib/db.js";
+import {
+  sendOTPEmail,
+  sendVerificationSuccessEmail,
+} from "../lib/emailService.js";
+
+export async function generateOTP(userId, email) {
+  const buffer = crypto.randomBytes(4);
+  const hex = buffer.toString("hex");
+  const num = parseInt(hex, 16);
+  const otp = (num % 1000000).toString().padStart(6, "0");
+
+  const otpHash = await bcrypt.hash(otp, 10);
+  const expiresAt = new Date(Date.now() + 15 * 60000); // 15 minutes
+
+  await db.emailOTP.create({
+    data: {
+      email,
+      otpHash,
+      expiresAt,
+      userId,
+    },
+  });
+
+  //send email with the OTP
+  await sendOTPEmail(email, otp);
+
+  return otp;
+}
 
 export async function registerUser(req, res) {
   try {
@@ -32,6 +60,10 @@ export async function registerUser(req, res) {
         userId: newUser.id,
       },
     });
+
+    // Generate OTP for email verification
+    await generateOTP(newUser.id, newUser.email);
+
     return res.status(201).json({
       message: "User registered successfully",
       user: {
@@ -44,26 +76,6 @@ export async function registerUser(req, res) {
     console.error("Registration error:", err);
     return res.status(500).json({ error: "Internal server error" });
   }
-}
-
-export async function generateOTP(userId, email) {
-  const buffer = crypto.randomBytes(4);
-  const hex = buffer.toString("hex");
-  const num = parseInt(hex, 16);
-  const otp = (num % 1000000).toString().padStart(6, "0");
-
-  const otpHash = await bcrypt.hash(otp, 10);
-  const expiresAt = new Date(Date.now() + 15 * 60000); // 15 minutes
-
-  await db.emailOTP.create({
-    data: {
-      email,
-      otpHash,
-      expiresAt,
-      userId,
-    },
-  });
-  return otp;
 }
 
 export async function verifyEmailOTP(req, res) {
@@ -118,6 +130,38 @@ export async function verifyEmailOTP(req, res) {
     return res.status(200).json({ message: "Email verified successfully!" });
   } catch (err) {
     console.error("Email verification error:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function resendVerifyEmailOTP(req, res) {
+  try {
+    const { email, userId } = req.body;
+
+    if (!email || !userId) {
+      return res.status(400).json({ error: "Email and userId are required!" });
+    }
+    const normalizedEmail = email.toLowerCase();
+    const user = await db.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found!" });
+    }
+    if (user.isEmailVerified) {
+      return res.status(400).json({ error: "Email already verified!" });
+    }
+
+    await db.emailOTP.updateMany({
+      where: { normalizedEmail, userId, used: false },
+      data: { revoked: true },
+    });
+
+    await generateOTP(userId, email);
+    return res.status(200).json({ message: "New OTP sent successfully!" });
+  } catch (err) {
+    console.error("Resend OTP error:", err);
     return res.status(500).json({ error: "Internal server error" });
   }
 }
