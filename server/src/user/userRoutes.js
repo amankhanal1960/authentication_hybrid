@@ -4,6 +4,7 @@ import {
   generateOTP,
   verifyEmailOTP,
   resendVerifyEmailOTP,
+  loginUser,
 } from "./userController.js";
 
 const router = express.Router();
