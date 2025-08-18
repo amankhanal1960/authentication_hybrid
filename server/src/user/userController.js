@@ -6,18 +6,26 @@ import {
   sendVerificationSuccessEmail,
 } from "../lib/emailService.js";
 
-export async function generateOTP(userId, email) {
-  const buffer = crypto.randomBytes(4);
-  const hex = buffer.toString("hex");
-  const num = parseInt(hex, 16);
-  const otp = (num % 1000000).toString().padStart(6, "0");
+const OTP_EXPIRY_MINUTES = Number(process.env.OTP_EXPIRY_MINUTES) || 15;
+const BCRYPT_SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS) || 10;
+const MAX_OTP_ATTEMPTS = 5;
 
-  const otpHash = await bcrypt.hash(otp, 10);
-  const expiresAt = new Date(Date.now() + 15 * 60000); // 15 minutes
+function makeOtp() {
+  const n = crypto.randomBytes(0, 1_000_000);
+  return String(n).padStart(6, "0");
+}
+
+export async function generateOTP(userId, email) {
+  const normalizedEmail = email.toLowerCase();
+
+  const otp = makeOtp();
+
+  const otpHash = await bcrypt.hash(otp, BCRYPT_SALT_ROUNDS);
+  const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60_000);
 
   await db.emailOTP.create({
     data: {
-      email,
+      email: normalizedEmail,
       otpHash,
       expiresAt,
       userId,
@@ -25,7 +33,7 @@ export async function generateOTP(userId, email) {
   });
 
   //send email with the OTP
-  await sendOTPEmail(email, otp);
+  await sendOTPEmail(normalizedEmail, otp);
 
   return otp;
 }
@@ -37,42 +45,74 @@ export async function registerUser(req, res) {
     if (!email || !password) {
       return res.status(400).json({ error: "Email and password required!" });
     }
-
-    const existingUser = await db.user.findUnique({ where: { email } });
-    if (existingUser) {
-      return res.status(409).json({ error: "User already exists!" });
-    }
+    const normalizedEmail = email.toLowerCase();
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const newUser = await db.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-      },
+    const result = await db.$transaction(async (tx) => {
+      const newUser = await db.user.create({
+        data: {
+          name,
+          email: normalizedEmail,
+          password: hashedPassword,
+          isEmailVerified: false,
+        },
+      });
+
+      await tx.account.create({
+        data: {
+          provider: "credentials",
+          providerAccountId: newUser.email,
+          userId: newUser.id,
+        },
+      });
+
+      const otp = makeOtp();
+      const otpHash = await bcrypt.hash(otp, BCRYPT_SALT_ROUNDS);
+      const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60_000);
+
+      await tx.emailOTP.create({
+        data: {
+          email: normalizedEmail,
+          otpHash,
+          expiresAt,
+          attempts: 0,
+          used: false,
+          revoked: false,
+          userId: newUser.id,
+        },
+      });
+
+      return { id: newUser.id, email, otp };
     });
 
-    await db.account.create({
-      data: {
-        provider: "credentials",
-        providerAccountId: newUser.email,
-        userId: newUser.id,
-      },
-    });
+    //send OTp outside the transaction
+    try {
+      await sendOTPEmail(result.email, result.otp);
+    } catch (emailError) {
+      console.error("Failed to send the OTP email:", emailError);
 
-    // Generate OTP for email verification
-    await generateOTP(newUser.id, newUser.email);
+      await db.emailOTP.updateMany({
+        where: { userId: result.id, used: false, revoked: false },
+        data: { revoked: true },
+      });
 
+      return res.status(500).json({ error: "Failed to send OTP email" });
+    }
     return res.status(201).json({
-      message: "User registered successfully",
-      user: {
-        id: newUser.id,
-        name: newUser.name,
-        email: newUser.email,
-      },
+      message:
+        "User registered successfully! Please check your email for the OTP.",
+      user: { id: result.id, email: result.email },
     });
   } catch (err) {
+    if (
+      err &&
+      err.code === "P2002" &&
+      err.meta &&
+      err.meta.target?.includes("email")
+    ) {
+      return res.status(409).json({ error: "User already exists" });
+    }
     console.error("Registration error:", err);
     return res.status(500).json({ error: "Internal server error" });
   }
@@ -92,18 +132,25 @@ export async function verifyEmailOTP(req, res) {
     const OTPRecord = await db.emailOTP.findFirst({
       where: {
         email: normalizedEmail,
+        userId: userId,
         used: false,
         expiresAt: {
           gt: new Date(),
         },
-        orderBy: {
-          createdAt: "desc",
-        },
+      },
+      orderBy: {
+        createdAt: "desc",
       },
     });
 
     if (!OTPRecord) {
       return res.status(400).json({ error: "Invalid or expired OTP!" });
+    }
+
+    if (OTPRecord.attempts >= MAX_OTP_ATTEMPTS) {
+      return res
+        .status(429)
+        .json({ error: "Too many failed attempts. Request a new OTP." });
     }
 
     const isValid = await bcrypt.compare(otp, OTPRecord.otpHash);
@@ -116,16 +163,22 @@ export async function verifyEmailOTP(req, res) {
       return res.status(400).json({ error: "Invalid OTP!" });
     }
 
-    await db.emailOTP.update({
-      where: { id: OTPRecord.id },
-      data: { used: true },
-    }),
+    await db.$transaction([
+      db.emailOTP.update({
+        where: { id: OTPRecord.id },
+        data: { used: true, attempts: 0 }, // Mark as used and reset attempts
+      }),
       db.user.update({
-        where: { email: normalizedEmail },
+        where: { id: userId },
         data: { isEmailVerified: true },
-      });
+      }),
+    ]);
 
-    await sendVerificationSuccessEmail(normalizedEmail);
+    try {
+      await sendVerificationSuccessEmail(email);
+    } catch (mailErr) {
+      console.error("Failed to send verification success email:", mailErr);
+    }
 
     return res.status(200).json({ message: "Email verified successfully!" });
   } catch (err) {
@@ -154,11 +207,12 @@ export async function resendVerifyEmailOTP(req, res) {
     }
 
     await db.emailOTP.updateMany({
-      where: { normalizedEmail, userId, used: false },
+      where: { email: normalizedEmail, userId, used: false, revoked: false },
       data: { revoked: true },
     });
 
     await generateOTP(userId, email);
+
     return res.status(200).json({ message: "New OTP sent successfully!" });
   } catch (err) {
     console.error("Resend OTP error:", err);
