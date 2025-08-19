@@ -1,7 +1,6 @@
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import db from "../lib/db.js";
-import jwt from "jsonwebtoken";
 import {
   sendOTPEmail,
   sendVerificationSuccessEmail,
@@ -24,9 +23,10 @@ function makeOtp() {
   return otp;
 }
 
-export async function generateOTP(userId, email) {
+// Generate OTP and store it in the database
+export async function generateOTP(userId, email, options = {}) {
+  const { name } = options;
   const normalizedEmail = email.toLowerCase();
-
   const otp = makeOtp();
 
   const otpHash = await bcrypt.hash(otp, BCRYPT_SALT_ROUNDS);
@@ -42,11 +42,12 @@ export async function generateOTP(userId, email) {
   });
 
   //send email with the OTP
-  await sendOTPEmail(normalizedEmail, otp);
+  await sendOTPEmail(normalizedEmail, otp, { name });
 
   return otp;
 }
 
+// Register a new user
 export async function registerUser(req, res) {
   try {
     const { name, email, password } = req.body;
@@ -75,29 +76,12 @@ export async function registerUser(req, res) {
           userId: newUser.id,
         },
       });
-
-      const otp = makeOtp();
-      const otpHash = await bcrypt.hash(otp, BCRYPT_SALT_ROUNDS);
-      const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60_000);
-
-      await tx.emailOTP.create({
-        data: {
-          email: normalizedEmail,
-          otpHash,
-          expiresAt,
-          attempts: 0,
-          used: false,
-          revoked: false,
-          userId: newUser.id,
-        },
-      });
-
-      return { id: newUser.id, email, otp };
+      return newUser;
     });
 
     //send OTp outside the transaction
     try {
-      await sendOTPEmail(result.email, result.otp);
+      await generateOTP(result.id, result.email, { name: result.name });
     } catch (emailError) {
       console.error("Failed to send the OTP email:", emailError);
 
@@ -127,6 +111,7 @@ export async function registerUser(req, res) {
   }
 }
 
+// Generate OTP for email verification
 export async function verifyEmailOTP(req, res) {
   try {
     const { otp, email, userId } = req.body;
@@ -183,8 +168,15 @@ export async function verifyEmailOTP(req, res) {
       }),
     ]);
 
+    //get the user details
+    const user = await db.user.findUnique({
+      where: { id: userId },
+
+      select: { name: true, email: true },
+    });
+
     try {
-      await sendVerificationSuccessEmail(email);
+      await sendVerificationSuccessEmail(user.email, { name: user.name });
     } catch (mailErr) {
       console.error("Failed to send verification success email:", mailErr);
     }
@@ -196,6 +188,7 @@ export async function verifyEmailOTP(req, res) {
   }
 }
 
+// Resend OTP for email verification
 export async function resendVerifyEmailOTP(req, res) {
   try {
     const { email, userId } = req.body;
@@ -220,7 +213,7 @@ export async function resendVerifyEmailOTP(req, res) {
       data: { revoked: true },
     });
 
-    await generateOTP(userId, email);
+    await generateOTP(user.id, user.email, { name: user.name });
 
     return res.status(200).json({ message: "New OTP sent successfully!" });
   } catch (err) {
@@ -229,6 +222,7 @@ export async function resendVerifyEmailOTP(req, res) {
   }
 }
 
+// Login user
 export async function loginUser(req, res) {
   try {
     const { email, password } = req.body;
@@ -260,18 +254,27 @@ export async function loginUser(req, res) {
       });
     }
 
-    if (!process.env.JWT_SECRET) {
-      console.error("Missing JWT_SECRET");
-      return res.status(500).json({ error: "Server configuration error." });
-    }
+    const meta = {
+      userAgent: req.get("User-Agent") || null,
+      ip: req.ip || req.headers["x-forwarded-for"] || null,
+    };
 
-    const token = jwt.sign(
-      { id: user.id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
-    );
+    const refreshTokenRaw = await generateRefreshToken(user, meta);
 
-    return res.status(200).json({ message: "Login successful", token });
+    const accessToken = generateAccessToken(user);
+
+    res.cookie("refreshToken", refreshTokenRaw, refreshTokenCookieOptions());
+
+    return res.status(200).json({
+      message: "Login successful",
+      accessToken,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        isEmailVerified: !!user.isEmailVerified,
+      },
+    });
   } catch (error) {
     console.error("Login error:", error);
     return res.status(500).json({ error: "Internal server error" });

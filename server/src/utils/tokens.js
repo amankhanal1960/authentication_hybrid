@@ -51,13 +51,14 @@ export async function generateRefreshToken(user, meta = {}) {
       expiresAt,
       revoked: false,
       userAgent: meta.userAgent || null,
-      ipaddress: meta.ip || null,
+      ipAddress: meta.ip || null,
     },
   });
 
   return raw;
 }
 
+//verify refresh token
 export async function verifyRefreshToken(raw) {
   if (!raw) return null;
 
@@ -66,16 +67,15 @@ export async function verifyRefreshToken(raw) {
     where: {
       tokenHash,
       revoked: false,
-      expiresAt: {
-        gte: new Date(),
-      },
-      include: { user: true },
+      expiresAt: { gte: new Date() },
     },
+    include: { user: true },
   });
 
   return rec || null;
 }
 
+//rotate refresh token
 export async function rotateRefreshToken(oldRaw, meta = {}) {
   const oldHash = sha256Hex(oldRaw);
 
@@ -103,7 +103,7 @@ export async function rotateRefreshToken(oldRaw, meta = {}) {
         expiresAt,
         revoked: false,
         userAgent: meta.userAgent || null,
-        ipaddress: meta.ip || null,
+        ipAddress: meta.ip || null,
       },
     });
 
@@ -111,6 +111,7 @@ export async function rotateRefreshToken(oldRaw, meta = {}) {
   });
 }
 
+//cookie options for refresh token
 export function refreshTokenCookieOptions() {
   const isProd = process.env.NODE_ENV === "production";
   return {
