@@ -6,6 +6,11 @@ import {
   sendOTPEmail,
   sendVerificationSuccessEmail,
 } from "../services/emailService.js";
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  refreshTokenCookieOptions,
+} from "../utils/tokens.js";
 
 const OTP_EXPIRY_MINUTES = Number(process.env.OTP_EXPIRY_MINUTES) || 15;
 const BCRYPT_SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS) || 10;
