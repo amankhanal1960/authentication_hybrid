@@ -1,56 +1,24 @@
-// src/services/api.js
-
-// Base URL for your backend API (can be overridden by env var in Next.js)
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
-/**
- * Helper to handle fetch responses in one place.
- * - Reads body as text and tries to parse JSON when present.
- * - Throws a generic Error when res.ok is false.
- *
- * NOTE: this keeps behavior like your original version (simple JSON.parse).
- * You can later make it safer by wrapping JSON.parse in try/catch.
- */
 const handleResponse = async (res) => {
-  // read raw text (handles empty bodies safely)
   const text = await res.text();
 
-  // parse JSON if there's text, otherwise use empty object
   const data = text ? JSON.parse(text) : {};
 
-  // non-2xx responses -> throw with server-provided message if available
   if (!res.ok) {
     throw new Error(data.error || "Request failed");
   }
 
-  // successful response -> return parsed data (or {})
   return data;
 };
 
-/* ---------------------------
-   Module-scoped state
-   --------------------------- */
-
-// in-memory access token (not persisted to localStorage/cookie)
 let accessToken = null;
 
-/* Refresh lock: ensures only one refresh request runs at a time.
-   - isRefreshing: boolean flag
-   - refreshPromise: the Promise for the currently running refresh call (others await it)
-*/
 let isRefreshing = false;
 let refreshPromise = null;
 
-/* ---------------------------
-   Exported authService object
-   --------------------------- */
-
 export const authService = {
-  /* Register new user.
-     Expects backend route: POST /api/user/register
-     We include credentials so cookies (if any) can be set by server.
-  */
   register: async (data) => {
     const res = await fetch(`${API_BASE_URL}/api/user/register`, {
       method: "POST",
