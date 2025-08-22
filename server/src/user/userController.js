@@ -115,6 +115,7 @@ export async function registerUser(req, res) {
 export async function verifyEmailOTP(req, res) {
   try {
     const { otp, email, userId } = req.body;
+    console.log("REQ BODY RECEIVED:", req.body);
     if (!otp || !email || !userId) {
       return res
         .status(400)

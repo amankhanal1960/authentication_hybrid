@@ -46,6 +46,7 @@ export const authService = {
   /* Resend OTP.
      Expects backend route: POST /api/user/resend-otp
   */
+
   resendOTP: async (data) => {
     const res = await fetch(`${API_BASE_URL}/api/user/resend-otp`, {
       method: "POST",

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Chrome, Facebook, Eye, EyeOff, Github, Apple } from "lucide-react";
+import EmailVerificationModal from "@/components/otpVerification";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function SignupForm() {
@@ -15,6 +16,7 @@ export default function SignupForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
 
   const router = useRouter();
   const { register } = useAuth();
@@ -28,7 +30,7 @@ export default function SignupForm() {
     setLocalError(null);
 
     // Basic client-side validation (optional)
-    if (!name.trim() || !email.trim() || !password) {
+    if (!name || !email || !password) {
       setLocalError("Please fill all fields.");
       return;
     }
@@ -37,8 +39,8 @@ export default function SignupForm() {
     try {
       // call the context's register method (which uses authService.register)
       const res = await register({
-        name: name.trim(),
-        email: email.trim(),
+        name,
+        email,
         password,
       });
 
@@ -46,14 +48,19 @@ export default function SignupForm() {
       // { success: true, needsVerification: true, userId } OR { success: false, message }
       if (res?.success) {
         if (res.needsVerification && res.userId) {
-          // redirect to a verification / OTP page and pass userId (or use whatever your flow expects)
-          router.push(`/auth/verify?userId=${encodeURIComponent(res.userId)}`);
+          // Show the OTP verification modal
+          setShowVerificationModal(true);
           return;
         }
+        // if (res.needsVerification && res.userId) {
+        //   // redirect to a verification / OTP page and pass userId (or use whatever your flow expects)
+        //   router.push(`/auth/verify?userId=${encodeURIComponent(res.userId)}`);
+        //   return;
+        // }
 
         // If backend returns user directly and no verification needed
         // redirect to app home / dashboard
-        router.push("/dashboard"); // change target as needed
+        // router.push("/dashboard");
         return;
       }
 
@@ -70,6 +77,15 @@ export default function SignupForm() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleVerificationSuccess = () => {
+    setShowVerificationModal(false);
+    router.push("/auth/login");
+  };
+
+  const handleVerificationClose = () => {
+    setShowVerificationModal(false);
   };
 
   return (
@@ -256,6 +272,12 @@ export default function SignupForm() {
           </div>
         </div>
       </div>
+      <EmailVerificationModal
+        isOpen={showVerificationModal}
+        onClose={handleVerificationClose}
+        onSuccess={handleVerificationSuccess}
+        email={email}
+      />
     </div>
   );
 }
