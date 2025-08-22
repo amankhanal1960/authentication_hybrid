@@ -6,17 +6,70 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Chrome, Facebook, Eye, EyeOff, Github, Apple } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+
 export default function SignupForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   const router = useRouter();
+  const { register } = useAuth();
 
   const handleSignInRedirect = () => {
     router.push("/auth/login");
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLocalError(null);
+
+    // Basic client-side validation (optional)
+    if (!name.trim() || !email.trim() || !password) {
+      setLocalError("Please fill all fields.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // call the context's register method (which uses authService.register)
+      const res = await register({
+        name: name.trim(),
+        email: email.trim(),
+        password,
+      });
+
+      // Your AuthContext.register returns either:
+      // { success: true, needsVerification: true, userId } OR { success: false, message }
+      if (res?.success) {
+        if (res.needsVerification && res.userId) {
+          // redirect to a verification / OTP page and pass userId (or use whatever your flow expects)
+          router.push(`/auth/verify?userId=${encodeURIComponent(res.userId)}`);
+          return;
+        }
+
+        // If backend returns user directly and no verification needed
+        // redirect to app home / dashboard
+        router.push("/dashboard"); // change target as needed
+        return;
+      }
+
+      // show backend message if registration failed
+      setLocalError(res?.message || "Registration failed. Try again.");
+    } catch (err) {
+      // register already sets context error, but show local fallback
+      setLocalError(
+        typeof err === "object" && err !== null && "message" in err
+          ? (err as { message?: string }).message ||
+              "Registration failed. Try again."
+          : "Registration failed. Try again."
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -107,7 +160,11 @@ export default function SignupForm() {
                 </div>
 
                 {/* Signup Form */}
-                <form className="space-y-5">
+
+                {localError && (
+                  <div className="text-sm text-red-600 mb-2">{localError}</div>
+                )}
+                <form className="space-y-5" onSubmit={handleSubmit}>
                   <div className="space-y-2">
                     <Label htmlFor="name" className="text-primary font-medium">
                       Full Name
