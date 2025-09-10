@@ -98,11 +98,11 @@ export default function EmailVerificationModal({
     try {
       // prefer userId if provided, otherwise send email
       const body = {
-        id: userId,
+        userId: userId,
         email: email,
         otp,
       };
-      console.log("BOSY I AM SENDING:", body);
+      console.log("BODY I AM SENDING:", body);
       const res: VerifyResponse = await verifyOtp(body);
 
       if (res?.success) {

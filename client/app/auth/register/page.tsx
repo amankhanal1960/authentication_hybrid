@@ -17,6 +17,7 @@ export default function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
   const router = useRouter();
   const { register } = useAuth();
@@ -48,7 +49,8 @@ export default function SignupForm() {
       // { success: true, needsVerification: true, userId } OR { success: false, message }
       if (res?.success) {
         if (res.needsVerification && res.userId) {
-          // Show the OTP verification modal
+          // store the userId and show the verification modal
+          setUserId(res.userId);
           setShowVerificationModal(true);
           return;
         }
@@ -277,6 +279,7 @@ export default function SignupForm() {
         onClose={handleVerificationClose}
         onSuccess={handleVerificationSuccess}
         email={email}
+        userId={userId ?? undefined}
       />
     </div>
   );
