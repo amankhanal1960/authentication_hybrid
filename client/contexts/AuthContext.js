@@ -1,6 +1,7 @@
 // src/context/AuthContext.jsx
 import { createContext, useContext, useEffect, useState } from "react";
 import { authService } from "../services/api";
+import { useSnackbar } from "notistack";
 
 const AuthContext = createContext();
 
@@ -13,6 +14,8 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
+  const { enqueueSnackbar } = useSnackbar();
+
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -55,6 +58,12 @@ export const AuthProvider = ({ children }) => {
 
       // backend may return created user or minimal info
       if (response?.user) {
+        enqueueSnackbar(
+          "Registration successful! Please check your email for OTP.",
+          {
+            variant: "success",
+          }
+        );
         return {
           success: true,
           needsVerification: true,
@@ -62,11 +71,18 @@ export const AuthProvider = ({ children }) => {
         };
       }
 
+      enqueueSnackbar(response?.message || "Registration failed", {
+        variant: "error",
+      });
+
       return {
         success: false,
         message: response?.message || "Registration failed",
       };
     } catch (err) {
+      enqueueSnackbar(err?.message || "Registration failed", {
+        variant: "error",
+      });
       setError(err?.message || "Registration failed");
       return { success: false, message: err?.message || "Registration failed" };
     } finally {
@@ -82,6 +98,9 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.verifyOTP(otpData);
 
       if (response?.message) {
+        enqueueSnackbar("OTP verified successfully! Please log in.", {
+          variant: "success",
+        });
         return { success: true, message: response.message };
       }
       return {
@@ -89,6 +108,9 @@ export const AuthProvider = ({ children }) => {
         message: response?.error || "Verification failed",
       };
     } catch (err) {
+      enqueueSnackbar(err?.message || "Verification failed", {
+        variant: "error",
+      });
       setError(err?.message || "Verification failed");
       return { success: false, message: err?.message || "Verification failed" };
     } finally {
@@ -105,12 +127,15 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.login(credentials);
       if (response?.user) {
         setUser(response.user);
+        enqueueSnackbar("Login successful", { variant: "success" });
         // authService stores accessToken internally; you don't need to keep it here unless desired
         return { success: true, user: response.user };
       }
 
+      enqueueSnackbar(response?.error || "Login failed", { variant: "error" });
       return { success: false, message: response?.error || "Login failed" };
     } catch (err) {
+      enqueueSnackbar(err?.message || "Login failed", { variant: "error" });
       setError(err?.message || "Login failed");
       return { success: false, message: err?.message || "Login failed" };
     } finally {
