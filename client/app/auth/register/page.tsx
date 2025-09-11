@@ -5,7 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Chrome, Facebook, Eye, EyeOff, Github, Apple } from "lucide-react";
+import {
+  Chrome,
+  Facebook,
+  Eye,
+  EyeOff,
+  Github,
+  Apple,
+  Loader2,
+} from "lucide-react";
 import EmailVerificationModal from "@/components/otpVerification";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -251,8 +259,16 @@ export default function SignupForm() {
                   <Button
                     type="submit"
                     className="w-full h-12 bg-primary rounded-none cursor-pointer hover:bg-primary/90 text-white text-base font-medium"
+                    disabled={isLoading}
                   >
-                    Create Account
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Creating Account...
+                      </>
+                    ) : (
+                      "Create Account"
+                    )}
                   </Button>
                 </form>
 
