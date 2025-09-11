@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useAuth } from "@/contexts/AuthContext";
+
 import {
   Chrome,
   Facebook,
@@ -22,11 +24,37 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   const router = useRouter();
+  const { login } = useAuth();
 
   const handleSignUpRedirect = () => {
     router.push("/auth/register");
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    if (!email || !password) {
+      setLocalError("Please fill in all fields.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const res = await login({ email, password });
+
+      if (res?.success) {
+        router.push("/dashboard");
+      }
+    } catch (error: any) {
+      setLocalError(error?.message || "Login failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -118,7 +146,12 @@ export default function LoginForm() {
                 </div>
 
                 {/* Login Form */}
-                <form className="space-y-5">
+                {localError && (
+                  <div className="mb-4 text-center text-sm text-red-600">
+                    {localError}
+                  </div>
+                )}
+                <form className="space-y-5" onSubmit={handleSubmit}>
                   <div className="space-y-2">
                     <Label htmlFor="email" className="text-primary font-medium">
                       Email Address
