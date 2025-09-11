@@ -1,7 +1,8 @@
-// src/context/AuthContext.jsx
+"use client";
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { authService } from "../services/api";
-import { useSnackbar } from "notistack";
+import { toast } from "sonner";
 
 const AuthContext = createContext();
 
@@ -14,25 +15,20 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const { enqueueSnackbar } = useSnackbar();
-
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // On mount: try to refresh (if user has refresh cookie / existing session)
   useEffect(() => {
     checkAuthStatus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Check current session by calling refresh endpoint (will succeed only if refresh cookie present)
   const checkAuthStatus = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // refreshAccessToken may return { accessToken, user } if cookie valid
       const response = await authService.refreshAccessToken();
       if (response?.user) {
         setUser(response.user);
@@ -41,7 +37,6 @@ export const AuthProvider = ({ children }) => {
       }
       return response;
     } catch (err) {
-      // Not logged in or refresh failed
       setUser(null);
       return null;
     } finally {
@@ -49,20 +44,15 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Register (returns { success, userId } or { success:false, message })
   const register = async (userData) => {
     try {
       setLoading(true);
       setError(null);
       const response = await authService.register(userData);
 
-      // backend may return created user or minimal info
       if (response?.user) {
-        enqueueSnackbar(
-          "Registration successful! Please check your email for OTP.",
-          {
-            variant: "success",
-          }
+        toast.success(
+          "Registration successful! Please check your email for OTP."
         );
         return {
           success: true,
@@ -71,18 +61,14 @@ export const AuthProvider = ({ children }) => {
         };
       }
 
-      enqueueSnackbar(response?.message || "Registration failed", {
-        variant: "error",
-      });
+      toast.error(response?.message || "Registration failed");
 
       return {
         success: false,
         message: response?.message || "Registration failed",
       };
     } catch (err) {
-      enqueueSnackbar(err?.message || "Registration failed", {
-        variant: "error",
-      });
+      toast.error(err?.message || "Registration failed");
       setError(err?.message || "Registration failed");
       return { success: false, message: err?.message || "Registration failed" };
     } finally {
@@ -98,9 +84,7 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.verifyOTP(otpData);
 
       if (response?.message) {
-        enqueueSnackbar("OTP verified successfully! Please log in.", {
-          variant: "success",
-        });
+        toast.success("OTP verified successfully! Please log in.");
         return { success: true, message: response.message };
       }
       return {
@@ -108,9 +92,7 @@ export const AuthProvider = ({ children }) => {
         message: response?.error || "Verification failed",
       };
     } catch (err) {
-      enqueueSnackbar(err?.message || "Verification failed", {
-        variant: "error",
-      });
+      toast.error(err?.message || "Verification failed");
       setError(err?.message || "Verification failed");
       return { success: false, message: err?.message || "Verification failed" };
     } finally {
@@ -118,7 +100,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Login: issues access token + refresh cookie on server, and returns user
   const login = async (credentials) => {
     try {
       setLoading(true);
@@ -127,15 +108,14 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.login(credentials);
       if (response?.user) {
         setUser(response.user);
-        enqueueSnackbar("Login successful", { variant: "success" });
-        // authService stores accessToken internally; you don't need to keep it here unless desired
+        toast.success("Login successful");
         return { success: true, user: response.user };
       }
 
-      enqueueSnackbar(response?.error || "Login failed", { variant: "error" });
+      toast.error(response?.error || "Login failed");
       return { success: false, message: response?.error || "Login failed" };
     } catch (err) {
-      enqueueSnackbar(err?.message || "Login failed", { variant: "error" });
+      toast.error(err?.message || "Login failed");
       setError(err?.message || "Login failed");
       return { success: false, message: err?.message || "Login failed" };
     } finally {
@@ -143,15 +123,16 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Logout
   const logout = async () => {
     try {
       setLoading(true);
       setError(null);
       await authService.logout();
+      toast.success("Logged out successfully");
       setUser(null);
       return { success: true };
     } catch (err) {
+      toast.error(err?.message || "Logout failed");
       setError(err?.message || "Logout failed");
       return { success: false, message: err?.message || "Logout failed" };
     } finally {
@@ -159,7 +140,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Resend OTP
   const resendOtp = async (otpRequest) => {
     try {
       setLoading(true);

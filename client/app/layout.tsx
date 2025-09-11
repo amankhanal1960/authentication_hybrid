@@ -1,6 +1,6 @@
 // app/layout.jsx
 import "./globals.css";
-import { Providers } from "@/app/provider";
+import { Provider } from "@/app/provider";
 
 export const metadata = { title: "My App" };
 
@@ -10,7 +10,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <Providers>{children}</Providers>
+        <Provider>{children}</Provider>
       </body>
     </html>
   );
