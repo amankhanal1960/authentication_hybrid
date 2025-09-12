@@ -1,3 +1,5 @@
+import { signOut } from "next-auth/react";
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
@@ -111,14 +113,19 @@ export const authService = {
      Expects backend route: POST /api/auth/logout
   */
   logout: async () => {
-    const res = await fetch(`${API_BASE_URL}/api/auth/logout`, {
-      method: "POST",
-      credentials: "include",
-    });
+    try {
+      await fetch(`${API_BASE_URL}/api/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
 
-    // clear local in-memory token immediately
-    accessToken = null;
-    return handleResponse(res);
+      // clear local in-memory token immediately
+      accessToken = null;
+
+      await signOut({ callbackUrl: "/auth/login" });
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
   },
 
   /* Small helper to get the current in-memory access token */
