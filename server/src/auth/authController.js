@@ -44,7 +44,7 @@ export async function handleGoogleOAuth(req, res) {
           },
         });
 
-        return newUser;
+        return user;
       });
     } else {
       const existingAccount = await db.account.findFirst({
