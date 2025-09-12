@@ -1,11 +1,14 @@
 import express from "express";
-import { logoutUser, refreshAccessToken } from "./authController.js";
-// import { getSession } from "../auth/authController.js";
+import {
+  logoutUser,
+  refreshAccessToken,
+  googleOAuth,
+} from "./authController.js";
 
 const router = express.Router();
 
+router.post("/google", googleOAuth);
 router.post("/refresh", refreshAccessToken);
 router.post("/logout", logoutUser);
-// router.get("/session", getSession); //not done yet
 
 export default router;

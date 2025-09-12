@@ -6,7 +6,90 @@ import {
   generateAccessToken,
   refreshTokenCookieOptions,
   rotateRefreshToken,
+  generateRefreshToken,
 } from "../utils/tokens.js";
+
+export async function googleOAuth(req, res) {
+  try {
+    const { email, name, googleId, image } = req.body;
+
+    if (!email || !googleId) {
+      return res
+        .status(400)
+        .json({ error: "Email and Google ID are required" });
+    }
+
+    const normalizedEmail = email.toLowerCase();
+
+    let user = await db.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (!user) {
+      user = await db.user.create({
+        data: {
+          email: normalizedEmail,
+          name,
+          isEmailVerified: true,
+        },
+      });
+
+      await db.account.create({
+        data: {
+          userId: user.id,
+          provider: "google",
+          providerAccountId: user.email,
+          type: "oauth",
+        },
+      });
+    } else {
+      const existingAccount = await db.account.findFirst({
+        where: {
+          userId: user.id,
+          provider: "google",
+        },
+      });
+
+      if (!existingAccount) {
+        await db.account.create({
+          data: {
+            userId: user.id,
+            type: "oauth",
+            provider: "google",
+            providerAccountId: googleId,
+          },
+        });
+      }
+    }
+
+    const meta = {
+      userAgent: req.get("User-Agent") || null,
+      ip: req.ip || req.headers["x-forwarded-for"] || null,
+    };
+
+    const refreshTokenRaw = await generateRefreshToken(user, meta);
+    const accessToken = generateAccessToken(user);
+
+    res.cookie("refreshToken", refreshTokenRaw, refreshTokenCookieOptions());
+
+    return res.status(200).json({
+      accessToken,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        isEmailVerified: user.isEmailVerified,
+      },
+    });
+  } catch (error) {
+    console.error("Google OAuth error:", error);
+
+    if (error.code === "P2002") {
+      return res.status(409).json({ error: "User already exists" });
+    }
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
 
 export async function refreshAccessToken(req, res) {
   try {
