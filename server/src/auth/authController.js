@@ -9,7 +9,7 @@ import {
   generateRefreshToken,
 } from "../utils/tokens.js";
 
-export async function googleOAuth(req, res) {
+export async function handleGoogleOAuth(req, res) {
   try {
     const { email, name, googleId, image } = req.body;
 
@@ -26,21 +26,25 @@ export async function googleOAuth(req, res) {
     });
 
     if (!user) {
-      user = await db.user.create({
-        data: {
-          email: normalizedEmail,
-          name,
-          isEmailVerified: true,
-        },
-      });
+      user = await db.$transaction(async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            email: normalizedEmail,
+            name: name,
+            avatarUrl: image,
+            isEmailVerified: true,
+          },
+        });
 
-      await db.account.create({
-        data: {
-          userId: user.id,
-          provider: "google",
-          providerAccountId: user.email,
-          type: "oauth",
-        },
+        await tx.account.create({
+          data: {
+            userId: user.id,
+            provider: "google",
+            providerAccountId: googleId,
+          },
+        });
+
+        return newUser;
       });
     } else {
       const existingAccount = await db.account.findFirst({
@@ -54,7 +58,6 @@ export async function googleOAuth(req, res) {
         await db.account.create({
           data: {
             userId: user.id,
-            type: "oauth",
             provider: "google",
             providerAccountId: googleId,
           },

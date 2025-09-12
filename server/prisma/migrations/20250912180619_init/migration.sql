@@ -53,6 +53,7 @@ CREATE TABLE "public"."EmailOTP" (
     "expiresAt" TIMESTAMP(3) NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "used" BOOLEAN NOT NULL DEFAULT false,
+    "revoked" BOOLEAN NOT NULL DEFAULT false,
     "userId" TEXT,
 
     CONSTRAINT "EmailOTP_pkey" PRIMARY KEY ("id")

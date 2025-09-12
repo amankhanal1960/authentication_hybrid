@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/AuthContext";
+import { signIn } from "next-auth/react";
 
 import {
   Chrome,
@@ -103,6 +104,7 @@ export default function LoginForm() {
                     <Button
                       variant="outline"
                       className="flex items-center cursor-pointer justify-center w-full sm:w-auto flex-1 h-12 bg-white text-primary  border border-gray-200 hover:bg-gray-50 lg:hover:ring-0 lg:hover:border-gray-500 text-base font-medium"
+                      onClick={() => signIn("google")}
                     >
                       <Chrome className="mr-3 h-5 w-5" />
                       Google

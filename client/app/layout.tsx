@@ -1,4 +1,5 @@
 // app/layout.jsx
+"use cleint";
 import "./globals.css";
 import { Provider } from "@/app/provider";
 
