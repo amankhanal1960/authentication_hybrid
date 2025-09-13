@@ -10,6 +10,7 @@ import {
   generateRefreshToken,
   refreshTokenCookieOptions,
 } from "../utils/tokens.js";
+import { createSession } from "../utils/session.js";
 
 const OTP_EXPIRY_MINUTES = Number(process.env.OTP_EXPIRY_MINUTES) || 15;
 const BCRYPT_SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS) || 10;
@@ -263,6 +264,8 @@ export async function loginUser(req, res) {
     const refreshTokenRaw = await generateRefreshToken(user, meta);
 
     const accessToken = generateAccessToken(user);
+
+    createSession(user, res);
 
     res.cookie("refreshToken", refreshTokenRaw, refreshTokenCookieOptions());
 

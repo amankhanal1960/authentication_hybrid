@@ -8,6 +8,7 @@ import {
   rotateRefreshToken,
   generateRefreshToken,
 } from "../utils/tokens.js";
+import { clearSession } from "../utils/session.js";
 
 export async function handleGoogleOAuth(req, res) {
   try {
@@ -144,6 +145,10 @@ export async function logoutUser(req, res) {
         data: { revoked: true },
       });
     }
+
+    //clear the session from the credentials
+    clearSession(res);
+
     res.clearCookie("refreshToken", { path: "/" });
     return res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
