@@ -6,6 +6,7 @@ import type {
 } from "next-auth";
 import type { JWT as NextAuthJWT } from "next-auth/jwt";
 import GoogleProvider from "next-auth/providers/google";
+import GithubProvider from "next-auth/providers/github";
 
 declare module "next-auth" {
   interface Session {
@@ -32,6 +33,8 @@ declare module "next-auth/jwt" {
 }
 
 export const authOptions: NextAuthOptions = {
+  debug: true,
+
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -42,6 +45,16 @@ export const authOptions: NextAuthOptions = {
           access_type: "offline",
           response_type: "code",
           scope: "openid email profile",
+        },
+      },
+    }),
+
+    GithubProvider({
+      clientId: process.env.GITHUB_CLIENT_ID!,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          scope: "read:user user:email", // Request necessary scopes
         },
       },
     }),
@@ -60,6 +73,7 @@ export const authOptions: NextAuthOptions = {
       account?: Account | null;
       profile?: Profile | undefined;
     }) {
+      //-------------------------------GOOGLE OAUTH------------------------------------//
       if (account?.provider === "google") {
         try {
           const response = await fetch(
@@ -72,6 +86,7 @@ export const authOptions: NextAuthOptions = {
                 name: user.name,
                 image: user.image,
                 googleId: account.providerAccountId,
+                accessToken: account.access_token,
               }),
             }
           );
@@ -91,6 +106,58 @@ export const authOptions: NextAuthOptions = {
           return false;
         } catch (error) {
           console.error("Error syncing Google user:", error);
+          return false;
+        }
+        //--------------------------------GITHUB OAUTH----------------------------------------//
+      } else if (account?.provider === "github") {
+        try {
+          // Check in your NextAuth configuration
+          console.log(
+            "GitHub Client ID available:",
+            !!process.env.GITHUB_CLIENT_ID
+          );
+          console.log(
+            "GitHub Client Secret available:",
+            !!process.env.GITHUB_CLIENT_SECRET
+          );
+          console.log("API URL:", process.env.NEXT_PUBLIC_API_URL);
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/api/auth/github`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: user.email,
+                name: user.name,
+                githubId: account.providerAccountId,
+                image: user.image,
+                accessToken: account.access_token,
+              }),
+            }
+          );
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(
+              "Backend GitHub API error:",
+              response.status,
+              errorText
+            );
+            return false;
+          }
+
+          const userData = await response.json();
+
+          if (userData.accessToken && userData.user?.id) {
+            user.id = userData.user.id;
+            user.backendAccessToken = userData.accessToken;
+            return true;
+          }
+
+          console.error("Invalid response format from backend");
+          return false;
+        } catch (error) {
+          console.error("Error syncing GitHub user:", error);
           return false;
         }
       }

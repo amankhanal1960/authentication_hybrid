@@ -17,6 +17,7 @@ export default function Header() {
   const router = useRouter();
 
   // make sure useAuth exposes `logout` (or change this to whatever your context provides)
+
   const { logout } = useAuth();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
