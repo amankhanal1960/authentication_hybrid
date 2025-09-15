@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 
 export default function Header() {
   const router = useRouter();
@@ -23,13 +24,19 @@ export default function Header() {
     if (isSigningOut) return;
     setIsSigningOut(true);
     try {
-      await logout();
+      const result = await logout();
+      if (!result?.success) {
+        console.warn("Backend logout returned failure", result);
+      }
 
-      router.push("/auth/login");
+      await signOut({ redirect: false });
+
+      router.replace("/auth/login");
     } catch (error) {
       console.error("Error during sign out:", error);
     } finally {
       setIsSigningOut(false);
+      router.push("/auth/login");
     }
   };
 

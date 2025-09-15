@@ -75,6 +75,12 @@ export const authOptions: NextAuthOptions = {
               }),
             }
           );
+          console.log(
+            "BACKEND_URL ok?",
+            !!process.env.BACKEND_URL,
+            "NEXT_PUBLIC_API_URL ok?",
+            !!process.env.NEXT_PUBLIC_API_URL
+          );
 
           if (response.ok) {
             const userData = await response.json();

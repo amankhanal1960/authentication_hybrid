@@ -1,5 +1,3 @@
-import { signOut } from "next-auth/react";
-
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
@@ -121,8 +119,6 @@ export const authService = {
 
       // clear local in-memory token immediately
       accessToken = null;
-
-      await signOut({ callbackUrl: "/auth/login" });
     } catch (err) {
       console.error("Logout error:", err);
     }
