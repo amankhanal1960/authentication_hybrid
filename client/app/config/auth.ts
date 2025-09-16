@@ -33,7 +33,8 @@ declare module "next-auth/jwt" {
 }
 
 export const authOptions: NextAuthOptions = {
-  debug: true,
+  debug: false,
+  useSecureCookies: process.env.NODE_ENV === "production",
 
   providers: [
     GoogleProvider({
