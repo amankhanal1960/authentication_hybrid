@@ -329,6 +329,8 @@ export async function handleFacebookOAuth(req, res) {
   try {
     console.log("Facebook OAuth request body:", req.body);
 
+    // logs the incomming request and validates that either a facebook id or access token is provided
+
     const { email: rawEmail, name, facebookId, image, accessToken } = req.body;
 
     if (!facebookId && !accessToken) {
@@ -339,6 +341,8 @@ export async function handleFacebookOAuth(req, res) {
 
     let email = rawEmail ? rawEmail.toLowerCase() : null;
     let facebookProfile = null;
+
+    //attemps to fetch the users profile from facebooks graph api using the provider accessToken
 
     if (accessToken) {
       try {
@@ -361,6 +365,8 @@ export async function handleFacebookOAuth(req, res) {
             details: errorData.error?.message || "Failed to fetch profile",
           });
         }
+
+        //Extracts the email from the facebook profile response if it wanent provided in the requet body
 
         facebookProfile = await profileResponse.json();
 
@@ -394,6 +400,7 @@ export async function handleFacebookOAuth(req, res) {
       where: { email: normalizedEmail },
     });
 
+    // checks if the user with the provided email already exists on the database, if not it creates a new one using a transaction
     if (!user) {
       user = await db.$transaction(async (tx) => {
         const newUser = await tx.user.create({
@@ -416,7 +423,7 @@ export async function handleFacebookOAuth(req, res) {
         return newUser;
       });
     } else {
-      const exiatingAccount = await db.account.findFirst({
+      const existingAccount = await db.account.findFirst({
         where: {
           userId: user.id,
           provider: "facebook",
@@ -439,6 +446,7 @@ export async function handleFacebookOAuth(req, res) {
       ip: req.ip || req.headers["x-forwarded-for"] || null,
     };
 
+    //Generates refresh token and access token for the authenticated user, sets HTTP-onlt cookie for refreshtoken and return the user data and accesstoken in reponse
     const refreshTokenRaw = await generateRefreshToken(user, meta);
     const accessTokenResponse = generateAccessToken(user);
 
