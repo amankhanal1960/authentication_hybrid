@@ -9,91 +9,8 @@ import {
   generateRefreshToken,
 } from "../utils/tokens.js";
 import { clearSession } from "../utils/session.js";
-
-export async function handleGoogleOAuth(req, res) {
-  try {
-    const { email, name, googleId, image } = req.body;
-
-    if (!email || !googleId) {
-      return res
-        .status(400)
-        .json({ error: "Email and Google ID are required" });
-    }
-
-    const normalizedEmail = email.toLowerCase();
-
-    let user = await db.user.findUnique({
-      where: { email: normalizedEmail },
-    });
-
-    if (!user) {
-      user = await db.$transaction(async (tx) => {
-        const user = await tx.user.create({
-          data: {
-            email: normalizedEmail,
-            name: name,
-            avatarUrl: image,
-            isEmailVerified: true,
-          },
-        });
-
-        await tx.account.create({
-          data: {
-            userId: user.id,
-            provider: "google",
-            providerAccountId: googleId,
-          },
-        });
-
-        return user;
-      });
-    } else {
-      const existingAccount = await db.account.findFirst({
-        where: {
-          userId: user.id,
-          provider: "google",
-        },
-      });
-
-      if (!existingAccount) {
-        await db.account.create({
-          data: {
-            userId: user.id,
-            provider: "google",
-            providerAccountId: googleId,
-          },
-        });
-      }
-    }
-
-    const meta = {
-      userAgent: req.get("User-Agent") || null,
-      ip: req.ip || req.headers["x-forwarded-for"] || null,
-    };
-
-    const refreshTokenRaw = await generateRefreshToken(user, meta);
-    const accessToken = generateAccessToken(user);
-
-    res.cookie("refreshToken", refreshTokenRaw, refreshTokenCookieOptions());
-
-    return res.status(200).json({
-      accessToken,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        isEmailVerified: user.isEmailVerified,
-      },
-    });
-  } catch (error) {
-    console.error("Google OAuth error:", error);
-
-    if (error.code === "P2002") {
-      return res.status(409).json({ error: "User already exists" });
-    }
-    return res.status(500).json({ error: "Internal server error" });
-  }
-}
+import { strict } from "assert";
+import { stringify } from "querystring";
 
 export async function refreshAccessToken(req, res) {
   try {
@@ -286,7 +203,6 @@ export async function handleGitHubOAuth(req, res) {
             userId: user.id,
             provider: "github",
             providerAccountId: String(githubId || githubProfile?.id),
-            type: "oauth",
           },
         });
       }
@@ -302,6 +218,232 @@ export async function handleGitHubOAuth(req, res) {
     const accessTokenResponse = generateAccessToken(user);
 
     // Set HTTP-only cookie for refresh token
+    res.cookie("refreshToken", refreshTokenRaw, refreshTokenCookieOptions());
+
+    return res.status(200).json({
+      accessToken: accessTokenResponse,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        isEmailVerified: user.isEmailVerified,
+      },
+    });
+  } catch (error) {
+    console.error("GitHub OAuth error:", error);
+
+    if (error.code === "P2002") {
+      return res.status(409).json({ error: "User already exists" });
+    }
+
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function handleGoogleOAuth(req, res) {
+  try {
+    const { email, name, googleId, image } = req.body;
+
+    if (!email || !googleId) {
+      return res
+        .status(400)
+        .json({ error: "Email and Google ID are required" });
+    }
+
+    const normalizedEmail = email.toLowerCase();
+
+    let user = await db.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (!user) {
+      user = await db.$transaction(async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            email: normalizedEmail,
+            name: name,
+            avatarUrl: image,
+            isEmailVerified: true,
+          },
+        });
+
+        await tx.account.create({
+          data: {
+            userId: user.id,
+            provider: "google",
+            providerAccountId: googleId,
+          },
+        });
+
+        return user;
+      });
+    } else {
+      const existingAccount = await db.account.findFirst({
+        where: {
+          userId: user.id,
+          provider: "google",
+        },
+      });
+
+      if (!existingAccount) {
+        await db.account.create({
+          data: {
+            userId: user.id,
+            provider: "google",
+            providerAccountId: googleId,
+          },
+        });
+      }
+    }
+
+    const meta = {
+      userAgent: req.get("User-Agent") || null,
+      ip: req.ip || req.headers["x-forwarded-for"] || null,
+    };
+
+    const refreshTokenRaw = await generateRefreshToken(user, meta);
+    const accessToken = generateAccessToken(user);
+
+    res.cookie("refreshToken", refreshTokenRaw, refreshTokenCookieOptions());
+
+    return res.status(200).json({
+      accessToken,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        isEmailVerified: user.isEmailVerified,
+      },
+    });
+  } catch (error) {
+    console.error("Google OAuth error:", error);
+
+    if (error.code === "P2002") {
+      return res.status(409).json({ error: "User already exists" });
+    }
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function handleFacebookOAuth(req, res) {
+  try {
+    console.log("Facebook OAuth request body:", req.body);
+
+    const { email: rawEmail, name, facebookId, image, accessToken } = req.body;
+
+    if (!facebookId && !accessToken) {
+      return res.status(400).json({
+        error: "Facebook ID or access token is required",
+      });
+    }
+
+    let email = rawEmail ? rawEmail.toLowerCase() : null;
+    let facebookProfile = null;
+
+    if (accessToken) {
+      try {
+        const profileResponse = await fetch(
+          `https://graph.facebook.com/v19.0/me?fields=id,name,email,picture.type(large)&access_token=${accessToken}`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "User-Agent": "authentication_hybrid",
+            },
+          }
+        );
+
+        if (!profileResponse.ok) {
+          const errorData = await profileResponse.json();
+          console.error("Facebook API error:", errorData);
+
+          return res.status(401).json({
+            error: "Invalid Facebook access token",
+            details: errorData.error?.message || "Failed to fetch profile",
+          });
+        }
+
+        facebookProfile = await profileResponse.json();
+
+        if (facebookProfile.email && !email) {
+          email = facebookProfile.email.toLowerCase();
+        }
+      } catch (error) {
+        console.error("Facebook OAuth error details:", {
+          message: error.message,
+          stack: error.stack,
+          code: error.code,
+          response: error.response?.data,
+        });
+
+        return res.status(502).json({
+          error: "Failure to fetch Facebook profile",
+        });
+      }
+    }
+
+    if (!email) {
+      return res.status(400).json({
+        error:
+          "Email is required for the Facebook authentication. Please ensure you've granted email access permessions.",
+      });
+    }
+
+    const normalizedEmail = email.toLowerCase();
+
+    let user = await db.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (!user) {
+      user = await db.$transaction(async (tx) => {
+        const newUser = await tx.user.create({
+          data: {
+            email: normalizedEmail,
+            name: name || facebookProfile?.name || "Facebook User",
+            avatarUrl: image || facebookProfile?.avatar_url || null,
+            isEmailVerified: true,
+          },
+        });
+
+        await tx.account.create({
+          data: {
+            userId: newUser.id,
+            provider: "Facebook",
+            providerAccountId: String(facebookId || githubProfile?.id),
+          },
+        });
+
+        return newUser;
+      });
+    } else {
+      const exiatingAccount = await db.account.findFirst({
+        where: {
+          userId: user.id,
+          provider: "facebook",
+        },
+      });
+
+      if (!existingAccount) {
+        ({
+          data: {
+            userId: user.id,
+            provider: "Facebook",
+            providerAccountId: String(facebookId || githubProfile?.id),
+          },
+        });
+      }
+    }
+
+    const meta = {
+      userAgent: req.get("User-Agent") || null,
+      ip: req.ip || req.headers["x-forwarded-for"] || null,
+    };
+
+    const refreshTokenRaw = await generateRefreshToken(user, meta);
+    const accessTokenResponse = generateAccessToken(user);
+
+    //HTTP-only cookie for refreshtoken
+
     res.cookie("refreshToken", refreshTokenRaw, refreshTokenCookieOptions());
 
     return res.status(200).json({
