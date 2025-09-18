@@ -9,8 +9,6 @@ import {
   generateRefreshToken,
 } from "../utils/tokens.js";
 import { clearSession } from "../utils/session.js";
-import { strict } from "assert";
-import { stringify } from "querystring";
 
 export async function refreshAccessToken(req, res) {
   try {
