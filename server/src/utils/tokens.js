@@ -61,7 +61,6 @@ export async function generateRefreshToken(user, meta = {}) {
 //verify refresh token
 export async function verifyRefreshToken(raw) {
   if (!raw) return null;
-  console.log(document.cookie);
 
   const tokenHash = sha256Hex(raw);
   const rec = await db.refreshToken.findFirst({
