@@ -6,15 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { signIn } from "next-auth/react";
-import {
-  Chrome,
-  Facebook,
-  Eye,
-  EyeOff,
-  Github,
-  Apple,
-  Loader2,
-} from "lucide-react";
+import { Chrome, Eye, EyeOff, Github, Loader2 } from "lucide-react";
 import EmailVerificationModal from "@/components/otpVerification";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -152,27 +144,13 @@ export default function SignupForm() {
                     <Button
                       variant="outline"
                       className="flex items-center cursor-pointer justify-center w-full sm:w-auto flex-1 h-12 bg-white text-primary  border border-gray-200 hover:bg-gray-50 lg:hover:ring-0 lg:hover:border-gray-500 text-base font-medium"
+                      onClick={() => signIn("github")}
                     >
                       <Github className="mr-3 h-5 w-5" />
                       Github
                     </Button>
                   </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <Button
-                      variant="outline"
-                      className="flex items-center cursor-pointer justify-center w-full sm:w-auto flex-1 h-12 bg-white text-primary  border border-gray-200 hover:bg-gray-50 lg:hover:ring-0 lg:hover:border-gray-500 text-base font-medium"
-                    >
-                      <Apple className="mr-3 h-5 w-5" />
-                      Apple
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="flex items-center cursor-pointer justify-center w-full sm:w-auto flex-1 h-12 bg-white text-primary  border border-gray-200 hover:bg-gray-50 lg:hover:ring-0 lg:hover:border-gray-500 text-base font-medium"
-                    >
-                      <Facebook className="mr-3 h-5 w-5" />
-                      Facebook
-                    </Button>
-                  </div>
+                  <div className="flex items-center justify-between gap-2"></div>
                 </div>
 
                 {/* Divider */}

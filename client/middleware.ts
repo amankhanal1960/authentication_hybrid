@@ -11,7 +11,6 @@ const SESSION_COOKIE_NAMES = [
   "auth-session", // your custom session cookie
   "next-auth.session-token", // NextAuth (dev / non-prefixed)
   "__Secure-next-auth.session-token", // NextAuth (secure, production)
-  "__Host-next-auth.session-token", // possible host-prefixed name
 ];
 function isPublic(pathname: string) {
   // exact match for root
