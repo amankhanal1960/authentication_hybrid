@@ -1,6 +1,5 @@
-// server/src/utils/session.js
 import { serialize, parse } from "cookie";
-import jwt from "jsonwebtoken"; // default import for CommonJS module
+import jwt from "jsonwebtoken";
 
 const { sign, verify } = jwt;
 
@@ -9,10 +8,12 @@ if (!SESSION_SECRET) {
   throw new Error("SESSION_SECRET or JWT_SECRET must be set in env");
 }
 
-const SESSION_MAX_AGE = 60 * 60 * 24 * 7;
+const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 
 export function createSession(user, res) {
-  // use expiresIn (seconds) for jsonwebtoken
+  const isProduction = process.env.NODE_ENV === "production";
+  const isVercel = process.env.VERCEL === "1";
+
   const sessionToken = sign(
     {
       user: {
@@ -23,21 +24,20 @@ export function createSession(user, res) {
       },
     },
     SESSION_SECRET,
-    { expiresIn: SESSION_MAX_AGE } // <-- correct option name
+    { expiresIn: SESSION_MAX_AGE }
   );
 
-  const isProduction = process.env.NODE_ENV === "production";
-
+  // For Vercel deployments, we need specific cookie settings
   const sessionCookie = serialize("auth-session", sessionToken, {
-    maxAge: SESSION_MAX_AGE, // seconds
-    expires: new Date(Date.now() + SESSION_MAX_AGE * 1000), // Date for cookie expiration
+    maxAge: SESSION_MAX_AGE,
+    expires: new Date(Date.now() + SESSION_MAX_AGE * 1000),
     httpOnly: true,
     path: "/",
-    sameSite: "lax",
-    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax", // "none" for cross-origin in production
+    secure: isProduction, // true for HTTPS in production
+    domain: isProduction ? ".vercel.app" : undefined, // Allow across all Vercel subdomains
   });
 
-  // preserve other cookies if already set
   const existing = res.getHeader && res.getHeader("Set-Cookie");
   if (existing) {
     const arr = Array.isArray(existing) ? existing : [existing];

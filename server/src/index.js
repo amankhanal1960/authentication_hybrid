@@ -10,37 +10,63 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 
-// CORS configuration - FIXED
+// Enhanced CORS configuration
 const allowedOrigins = [
   process.env.FRONTEND_URL || "https://authenticationclient.vercel.app",
-  "http://localhost:3000", // For local development
+  "http://localhost:3000",
+  "https://authentication-js-client.vercel.app",
 ];
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps, curl requests)
-      if (!origin) return callback(null, true);
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl requests)
+    if (!origin) return callback(null, true);
 
-      if (allowedOrigins.indexOf(origin) === -1) {
-        const msg =
-          "The CORS policy for this site does not allow access from the specified Origin.";
-        return callback(new Error(msg), false);
-      }
-      return callback(null, true);
-    },
-    credentials: true,
-    optionsSuccessStatus: 200,
-  })
-);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "Accept",
+  ],
+  optionsSuccessStatus: 200,
+};
 
-// Handle preflight requests
-app.options("*", cors());
+// Apply CORS middleware
+app.use(cors(corsOptions));
+
+// Explicitly handle preflight requests for all routes
+app.options("*", cors(corsOptions));
 
 // Routes
 app.use("/api/user", userRoutes);
 app.use("/api/auth", authRoutes);
 
-app.listen(4000, () => {
-  console.log("Server listening on http://localhost:4000");
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
+});
+
+// Error handling middleware for CORS errors
+app.use((err, req, res, next) => {
+  if (err.message === "Not allowed by CORS") {
+    res.status(403).json({
+      error: "CORS policy denied this request",
+      details: "Origin not in allowed list",
+    });
+  } else {
+    next(err);
+  }
+});
+
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
 });
