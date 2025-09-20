@@ -9,13 +9,14 @@ const app = express();
 app.use(
   cors({
     origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
 
       const allowedOrigins = [
         process.env.FRONTEND_URL,
         "https://authenticationclient.vercel.app",
-        "http://localhost:3000",
-      ].filter(Boolean);
+        "http://localhost:3000", // for local development
+      ].filter(Boolean); // Remove any undefined values
 
       if (allowedOrigins.includes(origin)) {
         callback(null, true);
