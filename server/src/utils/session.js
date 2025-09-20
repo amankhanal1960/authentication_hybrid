@@ -1,4 +1,4 @@
-import { serialize, parse } from "cookie";
+import { serialize } from "cookie";
 import jwt from "jsonwebtoken";
 
 const { sign, verify } = jwt;
@@ -27,15 +27,14 @@ export function createSession(user, res) {
     { expiresIn: SESSION_MAX_AGE }
   );
 
-  // For Vercel deployments, we need specific cookie settings
   const sessionCookie = serialize("auth-session", sessionToken, {
     maxAge: SESSION_MAX_AGE,
     expires: new Date(Date.now() + SESSION_MAX_AGE * 1000),
     httpOnly: true,
     path: "/",
-    sameSite: isProduction ? "none" : "lax", // "none" for cross-origin in production
+    sameSite: isProduction ? "lax" : "lax", // Changed from "none" to "lax"
     secure: isProduction, // true for HTTPS in production
-    domain: isProduction ? ".vercel.app" : undefined, // Allow across all Vercel subdomains
+    // domain: isProduction ? ".vercel.app" : undefined,
   });
 
   const existing = res.getHeader && res.getHeader("Set-Cookie");
@@ -47,23 +46,6 @@ export function createSession(user, res) {
   }
 
   return sessionToken;
-}
-
-export function verifySession(req) {
-  const cookies =
-    req.cookies ||
-    (req.headers && req.headers.cookie ? parse(req.headers.cookie) : {});
-  const sessionToken = cookies["auth-session"];
-
-  if (!sessionToken) return null;
-
-  try {
-    const decoded = verify(sessionToken, SESSION_SECRET);
-    // return user object directly if present
-    return decoded && decoded.user ? decoded.user : decoded;
-  } catch (error) {
-    return null;
-  }
 }
 
 export function clearSession(res) {

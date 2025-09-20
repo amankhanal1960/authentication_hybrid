@@ -117,7 +117,7 @@ export function refreshTokenCookieOptions() {
   return {
     httpOnly: true,
     secure: isProd,
-    sameSite: "lax",
+    sameSite: "lax", // Consistent with session cookies
     path: "/",
     maxAge: REFRESH_TOKEN_TLL_DAYS * 24 * 60 * 60 * 1000, // in milliseconds
   };
