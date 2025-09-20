@@ -27,15 +27,14 @@ export function createSession(user, res) {
     { expiresIn: SESSION_MAX_AGE }
   );
 
-  // For Vercel deployments, we need specific cookie settings
   const sessionCookie = serialize("auth-session", sessionToken, {
     maxAge: SESSION_MAX_AGE,
     expires: new Date(Date.now() + SESSION_MAX_AGE * 1000),
     httpOnly: true,
     path: "/",
-    sameSite: isProduction ? "none" : "lax", // "none" for cross-origin in production
+    sameSite: isProduction ? "lax" : "lax", // Changed from "none" to "lax"
     secure: isProduction, // true for HTTPS in production
-    domain: isProduction ? ".vercel.app" : undefined, // Allow across all Vercel subdomains
+    // domain: isProduction ? ".vercel.app" : undefined,
   });
 
   const existing = res.getHeader && res.getHeader("Set-Cookie");
@@ -49,6 +48,27 @@ export function createSession(user, res) {
   return sessionToken;
 }
 
+export function clearSession(res) {
+  const isProduction = process.env.NODE_ENV === "production";
+
+  const sessionCookie = serialize("auth-session", "", {
+    maxAge: -1,
+    expires: new Date(0),
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax", // Consistent with createSession
+    secure: isProduction,
+  });
+
+  const existing = res.getHeader && res.getHeader("Set-Cookie");
+  if (existing) {
+    const arr = Array.isArray(existing) ? existing : [existing];
+    res.setHeader("Set-Cookie", [...arr, sessionCookie]);
+  } else {
+    res.setHeader("Set-Cookie", sessionCookie);
+  }
+}
+
 export function verifySession(req) {
   const cookies =
     req.cookies ||
@@ -59,29 +79,9 @@ export function verifySession(req) {
 
   try {
     const decoded = verify(sessionToken, SESSION_SECRET);
+    // return user object directly if present
     return decoded && decoded.user ? decoded.user : decoded;
   } catch (error) {
     return null;
-  }
-}
-
-export function clearSession(res) {
-  const isProduction = process.env.NODE_ENV === "production";
-
-  const sessionCookie = serialize("auth-session", "", {
-    maxAge: -1,
-    expires: new Date(0),
-    path: "/",
-    httpOnly: true,
-    sameSite: "lax",
-    secure: isProduction,
-  });
-
-  const existing = res.getHeader && res.getHeader("Set-Cookie");
-  if (existing) {
-    const arr = Array.isArray(existing) ? existing : [existing];
-    res.setHeader("Set-Cookie", [...arr, sessionCookie]);
-  } else {
-    res.setHeader("Set-Cookie", sessionCookie);
   }
 }
