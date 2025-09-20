@@ -122,6 +122,17 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const fetchSession = async () => {
+    try {
+      const res = await authenticatedFetch("/api/auth/session");
+      setUser(res.user ?? null);
+    } catch (err) {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = async () => {
     try {
       setLoading(true);
@@ -173,6 +184,7 @@ export const AuthProvider = ({ children }) => {
     resendOtp,
     setError,
     checkAuthStatus,
+    fetchSession,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

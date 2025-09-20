@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { use, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -12,14 +12,21 @@ import { LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 
 export default function Header() {
   const router = useRouter();
 
-  // make sure useAuth exposes `logout` (or change this to whatever your context provides)
-
   const { logout } = useAuth();
   const [isSigningOut, setIsSigningOut] = useState(false);
+
+  const { data: nextAuthSession } = useSession();
+  const { user: credUser } = useAuth();
+
+  const user = nextAuthSession?.user || credUser;
+
+  const userName = user?.name ?? "Guest";
+  const userImage = user?.image ?? "/placeholder.svg?height=32&width=32";
 
   const handleSignOut = async () => {
     if (isSigningOut) return;
@@ -50,12 +57,12 @@ export default function Header() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage
-                    src="/placeholder.svg?height=32&width=32"
-                    alt="User avatar"
-                  />
+                  <AvatarImage src={userImage} />
                   <AvatarFallback className="bg-blue-600 text-white text-sm">
-                    U
+                    {userName
+                      .split(" ")
+                      .map((n: string) => n[0])
+                      .join("")}
                   </AvatarFallback>
                 </Avatar>
               </Button>
