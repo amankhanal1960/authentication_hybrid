@@ -61,6 +61,7 @@ export async function generateRefreshToken(user, meta = {}) {
 //verify refresh token
 export async function verifyRefreshToken(raw) {
   if (!raw) return null;
+  console.log(document.cookie);
 
   const tokenHash = sha256Hex(raw);
   const rec = await db.refreshToken.findFirst({
@@ -117,7 +118,7 @@ export function refreshTokenCookieOptions() {
   return {
     httpOnly: true,
     secure: isProd,
-    sameSite: "lax", // Consistent with session cookies
+    sameSite: "lax",
     path: "/",
     maxAge: REFRESH_TOKEN_TLL_DAYS * 24 * 60 * 60 * 1000, // in milliseconds
   };
