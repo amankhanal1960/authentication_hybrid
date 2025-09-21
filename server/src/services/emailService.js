@@ -158,8 +158,8 @@ export async function sendPasswordResetEmail(email, resetUrl, options = {}) {
     const subject = `${APP_NAME} - Password Reset Request`;
 
     const html = ` <div style="font-family: Arial, sans-serif; max-width: 600px;">
-        <h2 style="color: #2563eb;">Password reset</h2>
-        <p>Hello ${safeName},</p>
+        <h2 style="color: #2563eb;">Hello ${safeName},</h2>
+        
         <p>We received a request to reset the password for <strong>${safeEmail}</strong>.</p>
         <p>
           Click the button below to reset your password. This link is valid for ${ttl} minutes.
