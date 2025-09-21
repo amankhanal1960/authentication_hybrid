@@ -146,6 +146,118 @@ export async function sendVerificationSuccessEmail(email, options = {}) {
   }
 }
 
+export async function sendPasswordResetEmail(email, resetUrl, meta = {}) {
+  const { name } = options;
+  const safeName = escapeHtml(name) || "User";
+  const safeEmail = escapeHtml(email);
+  const safeResetUrl = escapeHtml(resetUrl);
+  const ttl = meta.ttlMinutes || 60;
+
+  try {
+    const subject = `${APP_NAME} - Password Reset Request`;
+
+    const html = ` <div style="font-family: Arial, sans-serif; max-width: 600px;">
+        <h2 style="color: #2563eb;">Password reset</h2>
+        <p>Hello,</p>
+        <p>We received a request to reset the password for <strong>${safeEmail}</strong>.</p>
+        <p>
+          Click the button below to reset your password. This link is valid for ${ttl} minutes.
+        </p>
+        <p>
+          <a href="${safeResetUrl}" style="
+              display: inline-block;
+              padding: 12px 24px;
+              background-color: #2563eb;
+              color: white;
+              text-decoration: none;
+              border-radius: 4px;
+              font-weight: bold;
+          ">Reset password</a>
+        </p>
+        <p>If the button doesn't work, copy and paste this link into your browser:</p>
+        <p><a href="${safeResetUrl}">${safeResetUrl}</a></p>
+        <p><em>If you didn't request this, just ignore this email — no changes were made.</em></p>
+      </div>
+    `;
+
+    const text =
+      ` You requested a password reset for ${safeEmail}.\n\n` +
+      ` Open this link to reset your password (valid for ${ttl} minutes): ${resetUrl}\n\n` +
+      `If you did not request this, ignore this email.`;
+
+    if (!transporter) {
+      console.log(`[DEV EMAIL] Password reset for ${email}: ${resetUrl}`);
+      return true;
+    }
+
+    await transporter.sendMail({
+      from: FROM,
+      to: email,
+      subject,
+      text,
+      html,
+    });
+
+    return true;
+  } catch (error) {
+    console.error("Failed to send password reset email:", error);
+    return false;
+  }
+}
+
+export async function sendPasswordChangeConfirmationEmail(email, options = {}) {
+  const { name } = options;
+  const safeName = escapeHtml(name) || "User";
+  const safeEmail = escapeHtml(email);
+  const loginUrl = `${APP_URL}/login`;
+
+  try {
+    const subject = `${APP_NAME} - Your password was changed`;
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px;">
+        <h2 style="color: #2563eb;">Hi ${safeName},</h2>
+        <p>Your password for <strong>${safeEmail}</strong> has just been changed.</p>
+        <p>If you made this change, you can safely ignore this email. If you did NOT change your password, please reset it immediately and contact support.</p>
+        <p>
+          <a href="${loginUrl}" style="
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #2563eb;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+          ">Login</a>
+        </p>
+      </div>
+    `;
+
+    const text =
+      `Hello ${safeName},\n\n` +
+      `Your password for ${safeEmail} was changed. If this was not you, reset your password immediately or contact support.\n\n` +
+      `Login: ${loginUrl}`;
+
+    if (!transporter) {
+      console.log(`[DEV EMAIL] Password-change confirmation for ${email}`);
+      return true;
+    }
+
+    await transporter.sendMail({
+      from: FROM,
+      to: email,
+      subject,
+      text,
+      html,
+    });
+
+    return true;
+  } catch (err) {
+    console.error("sendPasswordChangeConfirmationEmail error:", err);
+    return false;
+  }
+}
+
 if (transporter) {
   transporter.verify((error) => {
     if (error) {

@@ -1,7 +1,7 @@
 import crypto from "crypto";
-import { sendPasswordResetEmail } from "../../common/utils/email.js";
-import db from "../db/index.js";
-``;
+import { sendPasswordResetEmail } from "../services/emailService.js";
+import db from "../lib/db.js";
+
 export async function requestPasswordReset(req, res) {
   try {
     const { email } = req.body;
@@ -14,7 +14,10 @@ export async function requestPasswordReset(req, res) {
     });
 
     const rawToken = crypto.randomBytes(32).toString("hex");
-    const tokenHash = sha256(rawToken);
+    const tokenHash = crypto
+      .createHash("sha256")
+      .update(rawToken)
+      .digest("hex");
     const expiresAt = new Date(Date.now() + 3600 * 1000);
 
     if (user) {
