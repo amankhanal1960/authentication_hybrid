@@ -146,19 +146,20 @@ export async function sendVerificationSuccessEmail(email, options = {}) {
   }
 }
 
-export async function sendPasswordResetEmail(email, resetUrl, meta = {}) {
+export async function sendPasswordResetEmail(email, resetUrl, options = {}) {
   const { name } = options;
   const safeName = escapeHtml(name) || "User";
+  const { ttlMinutes } = options;
   const safeEmail = escapeHtml(email);
   const safeResetUrl = escapeHtml(resetUrl);
-  const ttl = meta.ttlMinutes || 60;
+  const ttl = ttlMinutes || OTP_EXPIRY_MINUTES || 60;
 
   try {
     const subject = `${APP_NAME} - Password Reset Request`;
 
     const html = ` <div style="font-family: Arial, sans-serif; max-width: 600px;">
         <h2 style="color: #2563eb;">Password reset</h2>
-        <p>Hello,</p>
+        <p>Hello ${safeName},</p>
         <p>We received a request to reset the password for <strong>${safeEmail}</strong>.</p>
         <p>
           Click the button below to reset your password. This link is valid for ${ttl} minutes.
@@ -181,8 +182,9 @@ export async function sendPasswordResetEmail(email, resetUrl, meta = {}) {
     `;
 
     const text =
-      ` You requested a password reset for ${safeEmail}.\n\n` +
-      ` Open this link to reset your password (valid for ${ttl} minutes): ${resetUrl}\n\n` +
+      `You requested a password reset for ${safeEmail}.\n\n` +
+      `Open this link to reset your password (valid for ${ttl} minutes):\n\n` +
+      `${resetUrl}\n\n` +
       `If you did not request this, ignore this email.`;
 
     if (!transporter) {

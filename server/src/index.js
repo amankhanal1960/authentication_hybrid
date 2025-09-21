@@ -51,7 +51,7 @@ app.use((err, req, res, next) => {
 
 app.use("/api/user", userRoutes);
 app.use("/api/auth", authRoutes);
-app.use("/api/reset-password", passwordRoutes);
+app.use("/api/password", passwordRoutes);
 
 app.get("/health", (req, res) => {
   res.json({ status: "OK", timestamp: new Date().toISOString() });

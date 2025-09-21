@@ -1,13 +1,19 @@
 import crypto from "crypto";
-import { sendPasswordResetEmail } from "../services/emailService.js";
+import bcrypt from "bcrypt";
+import {
+  sendPasswordChangeConfirmationEmail,
+  sendPasswordResetEmail,
+} from "../services/emailService.js";
 import db from "../lib/db.js";
+
+const RESET_TOKEN_TTL_MINUTES = 60;
 
 export async function requestPasswordReset(req, res) {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: "Email is required" });
 
-    const normalizedEmail = string(email).toLowerCase().trim();
+    const normalizedEmail = email.toLowerCase();
 
     const user = await db.user.findUnique({
       where: { email: normalizedEmail },
@@ -69,6 +75,82 @@ export async function requestPasswordReset(req, res) {
     });
   } catch (error) {
     console.error("requestPasswordReset error:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function resetPassword(req, res) {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res
+        .status(400)
+        .json({ error: "Token and new password are required" });
+    }
+
+    if (String(newPassword).length < 8) {
+      return res
+        .status(400)
+        .json({ error: "Password must be at least 8 characters long" });
+    }
+
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+    const resetRecord = await db.passwordReset.findFirst({
+      where: { tokenHash },
+      include: { user: true },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (
+      !resetRecord ||
+      resetRecord.used ||
+      resetRecord.expiresAt < new Date()
+    ) {
+      return res.status(400).json({ error: "Invalid or expired token" });
+    }
+
+    const user = resetRecord.user;
+
+    if (!user) {
+      return res.status(400).json({ error: "Invalid token" });
+    }
+
+    const newHashed = await bcrypt.hash(newPassword, 10);
+
+    await db.$transaction([
+      db.user.update({
+        where: { id: user.id },
+        data: { password: newHashed },
+      }),
+      db.passwordReset.update({
+        where: { id: resetRecord.id },
+        data: { used: true },
+      }),
+      db.refreshToken.updateMany({
+        where: { userId: user.id, revoked: false },
+        data: { revoked: true },
+      }),
+    ]);
+
+    try {
+      await sendPasswordChangeConfirmationEmail(user.email, {
+        name: user.name,
+      });
+    } catch (mailerror) {
+      console.error(
+        "Failed to send password change confirmation email:",
+        mailerror
+      );
+    }
+
+    return res.json({
+      message:
+        "password has been reset successfully. Please login with your new password.",
+    });
+  } catch (error) {
+    console.error("resetPassword error:", err);
     return res.status(500).json({ error: "Internal server error" });
   }
 }
