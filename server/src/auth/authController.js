@@ -323,151 +323,151 @@ export async function handleGoogleOAuth(req, res) {
   }
 }
 
-export async function handleFacebookOAuth(req, res) {
-  try {
-    console.log("Facebook OAuth request body:", req.body);
+// export async function handleFacebookOAuth(req, res) {
+//   try {
+//     console.log("Facebook OAuth request body:", req.body);
 
-    // logs the incomming request and validates that either a facebook id or access token is provided
+//     // logs the incomming request and validates that either a facebook id or access token is provided
 
-    const { email: rawEmail, name, facebookId, image, accessToken } = req.body;
+//     const { email: rawEmail, name, facebookId, image, accessToken } = req.body;
 
-    if (!facebookId && !accessToken) {
-      return res.status(400).json({
-        error: "Facebook ID or access token is required",
-      });
-    }
+//     if (!facebookId && !accessToken) {
+//       return res.status(400).json({
+//         error: "Facebook ID or access token is required",
+//       });
+//     }
 
-    let email = rawEmail ? rawEmail.toLowerCase() : null;
-    let facebookProfile = null;
+//     let email = rawEmail ? rawEmail.toLowerCase() : null;
+//     let facebookProfile = null;
 
-    //attemps to fetch the users profile from facebooks graph api using the provider accessToken
+//     //attemps to fetch the users profile from facebooks graph api using the provider accessToken
 
-    if (accessToken) {
-      try {
-        const profileResponse = await fetch(
-          `https://graph.facebook.com/v19.0/me?fields=id,name,email,picture.type(large)&access_token=${accessToken}`,
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              "User-Agent": "authentication_hybrid",
-            },
-          }
-        );
+//     if (accessToken) {
+//       try {
+//         const profileResponse = await fetch(
+//           `https://graph.facebook.com/v19.0/me?fields=id,name,email,picture.type(large)&access_token=${accessToken}`,
+//           {
+//             headers: {
+//               Authorization: `Bearer ${accessToken}`,
+//               "User-Agent": "authentication_hybrid",
+//             },
+//           }
+//         );
 
-        if (!profileResponse.ok) {
-          const errorData = await profileResponse.json();
-          console.error("Facebook API error:", errorData);
+//         if (!profileResponse.ok) {
+//           const errorData = await profileResponse.json();
+//           console.error("Facebook API error:", errorData);
 
-          return res.status(401).json({
-            error: "Invalid Facebook access token",
-            details: errorData.error?.message || "Failed to fetch profile",
-          });
-        }
+//           return res.status(401).json({
+//             error: "Invalid Facebook access token",
+//             details: errorData.error?.message || "Failed to fetch profile",
+//           });
+//         }
 
-        //Extracts the email from the facebook profile response if it wanent provided in the requet body
+//         //Extracts the email from the facebook profile response if it wanent provided in the requet body
 
-        facebookProfile = await profileResponse.json();
+//         facebookProfile = await profileResponse.json();
 
-        if (facebookProfile.email && !email) {
-          email = facebookProfile.email.toLowerCase();
-        }
-      } catch (error) {
-        console.error("Facebook OAuth error details:", {
-          message: error.message,
-          stack: error.stack,
-          code: error.code,
-          response: error.response?.data,
-        });
+//         if (facebookProfile.email && !email) {
+//           email = facebookProfile.email.toLowerCase();
+//         }
+//       } catch (error) {
+//         console.error("Facebook OAuth error details:", {
+//           message: error.message,
+//           stack: error.stack,
+//           code: error.code,
+//           response: error.response?.data,
+//         });
 
-        return res.status(502).json({
-          error: "Failure to fetch Facebook profile",
-        });
-      }
-    }
+//         return res.status(502).json({
+//           error: "Failure to fetch Facebook profile",
+//         });
+//       }
+//     }
 
-    if (!email) {
-      return res.status(400).json({
-        error:
-          "Email is required for the Facebook authentication. Please ensure you've granted email access permessions.",
-      });
-    }
+//     if (!email) {
+//       return res.status(400).json({
+//         error:
+//           "Email is required for the Facebook authentication. Please ensure you've granted email access permessions.",
+//       });
+//     }
 
-    const normalizedEmail = email.toLowerCase();
+//     const normalizedEmail = email.toLowerCase();
 
-    let user = await db.user.findUnique({
-      where: { email: normalizedEmail },
-    });
+//     let user = await db.user.findUnique({
+//       where: { email: normalizedEmail },
+//     });
 
-    // checks if the user with the provided email already exists on the database, if not it creates a new one using a transaction
-    if (!user) {
-      user = await db.$transaction(async (tx) => {
-        const newUser = await tx.user.create({
-          data: {
-            email: normalizedEmail,
-            name: name || facebookProfile?.name || "Facebook User",
-            avatarUrl: image || facebookProfile?.avatar_url || null,
-            isEmailVerified: true,
-          },
-        });
+//     // checks if the user with the provided email already exists on the database, if not it creates a new one using a transaction
+//     if (!user) {
+//       user = await db.$transaction(async (tx) => {
+//         const newUser = await tx.user.create({
+//           data: {
+//             email: normalizedEmail,
+//             name: name || facebookProfile?.name || "Facebook User",
+//             avatarUrl: image || facebookProfile?.avatar_url || null,
+//             isEmailVerified: true,
+//           },
+//         });
 
-        await tx.account.create({
-          data: {
-            userId: newUser.id,
-            provider: "Facebook",
-            providerAccountId: String(facebookId || githubProfile?.id),
-          },
-        });
+//         await tx.account.create({
+//           data: {
+//             userId: newUser.id,
+//             provider: "Facebook",
+//             providerAccountId: String(facebookId || githubProfile?.id),
+//           },
+//         });
 
-        return newUser;
-      });
-    } else {
-      const existingAccount = await db.account.findFirst({
-        where: {
-          userId: user.id,
-          provider: "facebook",
-        },
-      });
+//         return newUser;
+//       });
+//     } else {
+//       const existingAccount = await db.account.findFirst({
+//         where: {
+//           userId: user.id,
+//           provider: "facebook",
+//         },
+//       });
 
-      if (!existingAccount) {
-        ({
-          data: {
-            userId: user.id,
-            provider: "Facebook",
-            providerAccountId: String(facebookId || githubProfile?.id),
-          },
-        });
-      }
-    }
+//       if (!existingAccount) {
+//         ({
+//           data: {
+//             userId: user.id,
+//             provider: "Facebook",
+//             providerAccountId: String(facebookId || githubProfile?.id),
+//           },
+//         });
+//       }
+//     }
 
-    const meta = {
-      userAgent: req.get("User-Agent") || null,
-      ip: req.ip || req.headers["x-forwarded-for"] || null,
-    };
+//     const meta = {
+//       userAgent: req.get("User-Agent") || null,
+//       ip: req.ip || req.headers["x-forwarded-for"] || null,
+//     };
 
-    //Generates refresh token and access token for the authenticated user, sets HTTP-onlt cookie for refreshtoken and return the user data and accesstoken in reponse
-    const refreshTokenRaw = await generateRefreshToken(user, meta);
-    const accessTokenResponse = generateAccessToken(user);
+//     //Generates refresh token and access token for the authenticated user, sets HTTP-onlt cookie for refreshtoken and return the user data and accesstoken in reponse
+//     const refreshTokenRaw = await generateRefreshToken(user, meta);
+//     const accessTokenResponse = generateAccessToken(user);
 
-    //HTTP-only cookie for refreshtoken
+//     //HTTP-only cookie for refreshtoken
 
-    res.cookie("refreshToken", refreshTokenRaw, refreshTokenCookieOptions());
+//     res.cookie("refreshToken", refreshTokenRaw, refreshTokenCookieOptions());
 
-    return res.status(200).json({
-      accessToken: accessTokenResponse,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        isEmailVerified: user.isEmailVerified,
-      },
-    });
-  } catch (error) {
-    console.error("GitHub OAuth error:", error);
+//     return res.status(200).json({
+//       accessToken: accessTokenResponse,
+//       user: {
+//         id: user.id,
+//         name: user.name,
+//         email: user.email,
+//         isEmailVerified: user.isEmailVerified,
+//       },
+//     });
+//   } catch (error) {
+//     console.error("GitHub OAuth error:", error);
 
-    if (error.code === "P2002") {
-      return res.status(409).json({ error: "User already exists" });
-    }
+//     if (error.code === "P2002") {
+//       return res.status(409).json({ error: "User already exists" });
+//     }
 
-    return res.status(500).json({ error: "Internal server error" });
-  }
-}
+//     return res.status(500).json({ error: "Internal server error" });
+//   }
+// }

@@ -3,6 +3,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import userRoutes from "./user/userRoutes.js";
 import authRoutes from "./auth/authRoutes.js";
+import passwordRoutes from "./reset-password/passwordRoute.js";
 
 const app = express();
 
@@ -50,6 +51,7 @@ app.use((err, req, res, next) => {
 
 app.use("/api/user", userRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/password", passwordRoutes);
 
 app.get("/health", (req, res) => {
   res.json({ status: "OK", timestamp: new Date().toISOString() });
