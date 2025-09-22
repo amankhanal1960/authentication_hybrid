@@ -58,6 +58,7 @@ export async function requestPasswordReset(req, res) {
       try {
         await sendPasswordResetEmail(normalizedEmail, resetUrl, {
           ttlMinutes: RESET_TOKEN_TTL_MINUTES,
+          name: user.name,
         });
       } catch (error) {
         console.error("Error sending password reset email:", error);

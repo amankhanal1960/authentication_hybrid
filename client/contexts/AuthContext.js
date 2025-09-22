@@ -103,13 +103,16 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await authService.resetPasswordRequest(email);
+      const response = await authService.resetPasswordRequest({ email });
 
-      if (response?.message === "Password reset email sent") {
-        toast.success("Password reset email sent. Please check your inbox.");
+      if (response && response.message) {
+        toast.success(
+          "If an account exists, a reset link has been sent to the email."
+        );
         return { success: true, message: response.message };
       }
 
+      // fallback
       return {
         success: false,
         message: response?.error || "Failed to send reset email",
@@ -121,6 +124,8 @@ export const AuthProvider = ({ children }) => {
         success: false,
         message: error?.message || "Failed to send reset email",
       };
+    } finally {
+      setLoading(false);
     }
   };
 
