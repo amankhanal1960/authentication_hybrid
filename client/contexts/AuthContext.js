@@ -99,6 +99,31 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const resetPasswordRequest = async (email) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await authService.resetPasswordRequest(email);
+
+      if (response?.message === "Password reset email sent") {
+        toast.success("Password reset email sent. Please check your inbox.");
+        return { success: true, message: response.message };
+      }
+
+      return {
+        success: false,
+        message: response?.error || "Failed to send reset email",
+      };
+    } catch (error) {
+      toast.error(error?.message || "Failed to send reset email");
+      setError(error?.message || "Failed to send reset email");
+      return {
+        success: false,
+        message: error?.message || "Failed to send reset email",
+      };
+    }
+  };
+
   const login = async (credentials) => {
     try {
       setLoading(true);
@@ -185,6 +210,7 @@ export const AuthProvider = ({ children }) => {
     setError,
     checkAuthStatus,
     fetchSession,
+    resetPasswordRequest,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

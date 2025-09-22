@@ -47,7 +47,7 @@ export async function requestPasswordReset(req, res) {
         },
       });
 
-      const frontend = process.env.FRONTEND_URL || "http://localhost:3000";
+      const frontend = "http://localhost:3000";
       const resetUrl = `${frontend.replace(
         /\/$/,
         ""

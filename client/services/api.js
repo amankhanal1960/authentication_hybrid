@@ -76,6 +76,29 @@ export const authService = {
     return response;
   },
 
+  resetPasswordRequest: async (data) => {
+    const res = await fetch(
+      `${API_BASE_URL}/api/password/request-password-reset`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        credentials: "include",
+      }
+    );
+    return handleResponse(res);
+  },
+
+  resetPassword: async (data) => {
+    const res = await fetch(`${API_BASE_URL}/api/password/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+      credentials: "include",
+    });
+    return handleResponse(res);
+  },
+
   /* Refresh access token using the refresh cookie.
      This call should be idempotent-safe on the server: when
      browser sends the httpOnly refresh cookie, server returns
