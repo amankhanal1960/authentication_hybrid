@@ -8,7 +8,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Card,
   CardContent,
@@ -37,6 +36,16 @@ export default function ResetPasswordPage() {
   const token = searchParams.get("token");
   const email = searchParams.get("email");
 
+  const validatePassword = (pw: string): string | null => {
+    if (pw.length < 8) return "Password must be at least 8 characters long.";
+    if (!/[A-Za-z]/.test(pw))
+      return "Password must include at least one letter (a–z or A–Z).";
+    if (!/\d/.test(pw))
+      return "Password must include at least one number (0–9).";
+    if (/\s/.test(pw)) return "Password must not contain spaces.";
+    return null;
+  };
+
   useEffect(() => {
     // clear error if token/email present
     if (!token || !email) {
@@ -55,6 +64,14 @@ export default function ResetPasswordPage() {
       return;
     }
 
+    // validate password with specific messages
+    const pwError = validatePassword(newPassword);
+    if (pwError) {
+      setError(pwError);
+      setIsLoading(false);
+      return;
+    }
+
     const pw = String(newPassword || "").trim();
     const pw2 = String(confirmPassword || "").trim();
 
@@ -66,7 +83,7 @@ export default function ResetPasswordPage() {
     }
 
     if (pw !== pw2) {
-      setError("Passwords do not match.");
+      setError("Passwords do not match. Please verify! ");
       return;
     }
 
@@ -134,12 +151,6 @@ export default function ResetPasswordPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -147,7 +158,7 @@ export default function ResetPasswordPage() {
                 type="email"
                 value={email || ""}
                 disabled
-                className="bg-muted"
+                className="h-12 text-base rounded-none pr-12 lg:focus:ring-0 lg:focus:border-gray-500 border-gray-300"
               />
             </div>
 
@@ -213,9 +224,14 @@ export default function ResetPasswordPage() {
                   )}
                 </Button>
               </div>
+              {error && (
+                <div className="m-4 text-center text-xs text-red-600">
+                  {error}
+                </div>
+              )}
             </div>
 
-            <Button type="submit" className="w-full" disabled={!canSubmit}>
+            <Button type="submit" className="w-full py-5" disabled={!canSubmit}>
               {isLoading ? "Resetting Password..." : "Reset Password"}
             </Button>
           </form>

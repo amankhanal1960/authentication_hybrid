@@ -78,7 +78,7 @@ export default function ForgotPasswordModal({
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+        <DialogHeader className="gap-4">
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
             Reset Password
@@ -101,7 +101,7 @@ export default function ForgotPasswordModal({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
+            <div className="space-y-4">
               <Label htmlFor="email">Email address</Label>
               <Input
                 id="email"
@@ -111,6 +111,7 @@ export default function ForgotPasswordModal({
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
                 aria-invalid={!!localError}
+                className="h-12 text-base rounded-none pr-12 lg:focus:ring-0 lg:focus:border-gray-500 border-gray-300"
               />
             </div>
 

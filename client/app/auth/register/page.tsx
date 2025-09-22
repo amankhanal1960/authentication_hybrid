@@ -27,6 +27,16 @@ export default function SignupForm() {
     router.push("/auth/login");
   };
 
+  const validatePassword = (pw: string): string | null => {
+    if (pw.length < 8) return "Password must be at least 8 characters long.";
+    if (!/[A-Za-z]/.test(pw))
+      return "Password must include at least one letter (a–z or A–Z).";
+    if (!/\d/.test(pw))
+      return "Password must include at least one number (0–9).";
+    if (/\s/.test(pw)) return "Password must not contain spaces.";
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLocalError(null);
@@ -34,10 +44,18 @@ export default function SignupForm() {
     // Basic client-side validation (optional)
     if (!name || !email || !password) {
       setLocalError("Please fill all fields.");
+      setIsLoading(false);
       return;
     }
 
-    setIsLoading(true);
+    // validate password with specific messages
+    const pwError = validatePassword(password);
+    if (pwError) {
+      setLocalError(pwError);
+      setIsLoading(false);
+      return;
+    }
+
     try {
       // call the context's register method (which uses authService.register)
       const res = await register({
@@ -167,9 +185,6 @@ export default function SignupForm() {
 
                 {/* Signup Form */}
 
-                {localError && (
-                  <div className="text-sm text-red-600 mb-2">{localError}</div>
-                )}
                 <form className="space-y-5" onSubmit={handleSubmit}>
                   <div className="space-y-2">
                     <Label htmlFor="name" className="text-primary font-medium">
@@ -234,6 +249,11 @@ export default function SignupForm() {
                         )}
                       </Button>
                     </div>
+                    {localError && (
+                      <div className="text-center text-xs text-red-600 m-4">
+                        {localError}
+                      </div>
+                    )}
                   </div>
 
                   <Button

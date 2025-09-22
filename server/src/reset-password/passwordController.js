@@ -47,7 +47,7 @@ export async function requestPasswordReset(req, res) {
         },
       });
 
-      const frontend = "http://localhost:3000";
+      const frontend = "https://authenticationclient.vercel.app";
       const resetUrl = `${frontend.replace(
         /\/$/,
         ""

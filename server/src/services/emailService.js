@@ -7,7 +7,8 @@ const SMTP_PASS = process.env.SMTP_PASS || null;
 const FROM = "Authentication_js <amankhanal1960@gmail.com>";
 const APP_NAME = process.env.APP_NAME || "Authentication Service";
 const OTP_EXPIRY_MINUTES = Number(process.env.OTP_EXPIRY_MINUTES) || 15;
-const APP_URL = process.env.APP_URL || "http://localhost:3000";
+const APP_URL =
+  process.env.FRONTEND_URL || "https://authenticationclient.vercel.app";
 
 const escapeHtml = (unsafe) => {
   if (!unsafe) return "";

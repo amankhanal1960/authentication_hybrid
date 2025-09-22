@@ -32,16 +32,33 @@ export default function LoginForm() {
     router.push("/auth/register");
   };
 
+  const validatePassword = (pw: string): string | null => {
+    if (pw.length < 8) return "Password must be at least 8 characters long.";
+    if (!/[A-Za-z]/.test(pw))
+      return "Password must include at least one letter (a–z or A–Z).";
+    if (!/\d/.test(pw))
+      return "Password must include at least one number (0–9).";
+    if (/\s/.test(pw)) return "Password must not contain spaces.";
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     if (!email || !password) {
       setLocalError("Please fill in all fields.");
+      setIsLoading(false);
       return;
     }
 
-    setIsLoading(true);
+    // validate password with specific messages
+    const pwError = validatePassword(password);
+    if (pwError) {
+      setLocalError(pwError);
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const res = await login({ email, password });
@@ -131,12 +148,6 @@ export default function LoginForm() {
                     </div>
                   </div>
 
-                  {/* Login Form */}
-                  {localError && (
-                    <div className="mb-4 text-center text-sm text-red-600">
-                      {localError}
-                    </div>
-                  )}
                   <form className="space-y-5" onSubmit={handleSubmit}>
                     <div className="space-y-2">
                       <Label
@@ -190,6 +201,13 @@ export default function LoginForm() {
                           )}
                         </Button>
                       </div>
+
+                      {/* Login Form */}
+                      {localError && (
+                        <div className="m-4 text-center text-xs text-red-600">
+                          {localError}
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
