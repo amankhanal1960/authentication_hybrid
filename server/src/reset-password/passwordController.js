@@ -55,10 +55,14 @@ export async function requestPasswordReset(req, res) {
         rawToken
       )}&email=${encodeURIComponent(normalizedEmail)}`;
 
+      const displayName =
+        (user?.name && String(user.name).trim()) ||
+        (user?.email ? user.email.split("@")[0] : "User");
+
       try {
         await sendPasswordResetEmail(normalizedEmail, resetUrl, {
           ttlMinutes: RESET_TOKEN_TTL_MINUTES,
-          name: user.name,
+          name: displayName,
         });
       } catch (error) {
         console.error("Error sending password reset email:", error);

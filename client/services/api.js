@@ -76,8 +76,9 @@ export const authService = {
     return response;
   },
 
+  /* Request password reset: backend should send a password */
+
   resetPasswordRequest: async (data) => {
-    // const body = typeof data === "string" ? { email: data } : data;
     const res = await fetch(
       `${API_BASE_URL}/api/password/request-password-reset`,
       {
@@ -89,6 +90,8 @@ export const authService = {
     );
     return handleResponse(res);
   },
+
+  /* Reset password using the token sent to user's email.*/
 
   resetPassword: async (data) => {
     const res = await fetch(`${API_BASE_URL}/api/password/reset`, {

@@ -211,15 +211,18 @@ export async function sendPasswordChangeConfirmationEmail(email, options = {}) {
   const { name } = options;
   const safeName = escapeHtml(name) || "User";
   const safeEmail = escapeHtml(email);
-  const loginUrl = `${APP_URL}/login`;
+  const loginUrl = `${APP_URL}/auth/login`;
 
   try {
     const subject = `${APP_NAME} - Your password was changed`;
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px;">
+
         <h2 style="color: #2563eb;">Hi ${safeName},</h2>
+
         <p>Your password for <strong>${safeEmail}</strong> has just been changed.</p>
+
         <p>If you made this change, you can safely ignore this email. If you did NOT change your password, please reset it immediately and contact support.</p>
         <p>
           <a href="${loginUrl}" style="
