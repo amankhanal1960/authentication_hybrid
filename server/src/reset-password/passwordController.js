@@ -151,7 +151,7 @@ export async function resetPassword(req, res) {
         "password has been reset successfully. Please login with your new password.",
     });
   } catch (error) {
-    console.error("resetPassword error:", err);
+    console.error("resetPassword error:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 }

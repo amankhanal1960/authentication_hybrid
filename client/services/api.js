@@ -1,6 +1,6 @@
-const API_BASE_URL = "http://localhost:4000";
-// process.env.NEXT_PUBLIC_API_BASE_URL ||
-// "https://authenticationserver.vercel.app";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  "https://authenticationserver.vercel.app";
 
 const handleResponse = async (res) => {
   const text = await res.text();
@@ -91,7 +91,7 @@ export const authService = {
   },
 
   resetPassword: async (data) => {
-    const res = await fetch(`${API_BASE_URL}/api/password/reset-password`, {
+    const res = await fetch(`${API_BASE_URL}/api/password/reset`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
