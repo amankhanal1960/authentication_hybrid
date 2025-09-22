@@ -56,6 +56,8 @@ export default function SignupForm() {
       return;
     }
 
+    setIsLoading(true);
+
     try {
       // call the context's register method (which uses authService.register)
       const res = await register({
