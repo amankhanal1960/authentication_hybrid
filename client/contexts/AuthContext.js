@@ -124,6 +124,29 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const passwordReset = async (data) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await authService.resetPassword(data);
+      if (response?.message) {
+        toast.success(response.message);
+        return { success: true, message: response.message };
+      }
+      return {
+        success: false,
+        message: response?.error || "Password reset failed",
+      };
+    } catch (err) {
+      toast.error(err?.message || "Password reset failed");
+      setError(err?.message || "Password reset failed");
+      return {
+        success: false,
+        message: err?.message || "Password reset failed",
+      };
+    }
+  };
+
   const login = async (credentials) => {
     try {
       setLoading(true);
@@ -210,6 +233,7 @@ export const AuthProvider = ({ children }) => {
     setError,
     checkAuthStatus,
     fetchSession,
+    passwordReset,
     resetPasswordRequest,
   };
 
